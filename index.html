@@ -1,0 +1,1093 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>셋리뷰 SetReview — 셋리스트 예습·떼창·복습 가이드</title>
+<meta name="description" content="내가 갈 공연의 예상 셋리스트를 Spotify 플레이리스트로, 떼창 포인트와 실시간 셋리스트까지. 2026년 11월 출시.">
+<meta name="theme-color" content="#0A0C24">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="셋리뷰 SetReview">
+<meta property="og:title" content="셋리뷰 — 모르는 노래 없이, 떼창 타이밍까지 완벽하게">
+<meta property="og:description" content="예상 셋리스트를 Spotify 플레이리스트로, 떼창 포인트와 실시간 셋리스트까지. 2026년 11월 출시.">
+<meta property="og:image" content="og-image.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&amp;family=Space+Grotesk:wght@500;700&amp;family=Instrument+Serif:ital@1&amp;display=swap">
+<style>
+body{margin:0;background:#0A0C24}
+a{color:#FF8A3D}a:hover{color:#FFB27A}
+summary::-webkit-details-marker{display:none}
+@keyframes eqbar{0%,100%{transform:scaleY(0.3)}50%{transform:scaleY(1)}}
+.eq-on span{animation:eqbar 0.9s ease-in-out infinite;transform-origin:bottom}
+.eq-on span:nth-child(2){animation-delay:-0.3s}
+.eq-on span:nth-child(3){animation-delay:-0.6s}
+.eq-on span:nth-child(4){animation-delay:-0.15s}
+@media (prefers-reduced-motion: reduce){.eq-on span{animation:none}}
+html{scroll-behavior:smooth}
+h1,h2,h3{text-wrap:balance}
+p,blockquote{text-wrap:pretty}
+img{max-width:100%}
+.sr-menu-btn{display:none !important}
+@media (max-width: 1040px){
+.sr-nav{display:none !important}
+.sr-menu-btn{display:flex !important}
+.sr-cta-top{display:none !important}
+}
+@media (max-width: 720px){
+.sr-hide-sm{display:none !important}
+.sr-bgm-label{display:none !important}
+.sr-bgm-pill{right:16px !important;bottom:16px !important;padding:8px !important}
+[style*="padding: 88px 24px 120px"]{padding:32px 16px 72px !important}
+[style*="padding: 112px 24px"],[style*="padding: 104px 24px"],[style*="padding: 120px 24px"]{padding-top:72px !important;padding-bottom:72px !important}
+[style*="padding: 0 24px 112px"],[style*="padding: 0 24px 120px"],[style*="padding: 0 24px 96px"],[style*="padding: 40px 24px 104px"]{padding-bottom:72px !important}
+[style*="24px"][style*="max-width: 1240px"]{padding-left:16px !important;padding-right:16px !important}
+[style*="padding: 14px 28px"],[style*="padding: 22px 28px"],[style*="padding: 16px 28px"],[style*="padding: 18px 28px"]{padding-left:16px !important;padding-right:16px !important}
+[style*="padding: 36px"]{padding:24px !important}
+[style*="padding: 32px;"]{padding:22px !important}
+[style*="min-height: 620px"]{min-height:540px !important}
+[style*="rotate(-2deg)"]{transform:none !important}
+[style*="grid-template-columns: 32px 48px"]{grid-template-columns:24px 44px minmax(0,1fr) auto !important;gap:10px !important}
+}
+</style>
+<style>[data-show]{display:contents}[data-show][hidden]{display:none}</style>
+</head>
+<body>
+<div style="background: #0A0C24; color: #EEEDFB; font-family: 'Noto Sans KR', sans-serif; overflow: hidden; letter-spacing: -0.01em; word-break: keep-all; overflow-wrap: break-word">
+
+<div style="background: #FF6A1F; color: #0A0C24; font-size: 14px; font-weight: 700">
+<div style="max-width: 1240px; margin: 0 auto; padding: 10px 24px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px 16px; text-align: center">
+<span>셋리뷰가 2026년 11월 정식 출시돼요</span>
+<a href="#download" style="color: #0A0C24; text-decoration: underline; text-underline-offset: 3px">출시 알림 받기 →</a>
+</div>
+</div>
+
+<section id="top" style="position: relative; overflow: hidden">
+<img fetchpriority="high" src="assets/img/hero.jpg" alt="" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 35%">
+<div style="position: absolute; inset: 0; background: linear-gradient(90deg, rgba(10,12,36,0.94) 0%, rgba(10,12,36,0.72) 48%, rgba(10,12,36,0.3) 100%)" aria-hidden="true"></div>
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 240px; background: linear-gradient(180deg, rgba(10,12,36,0) 0%, #0A0C24 100%)" aria-hidden="true"></div>
+
+<header style="position: relative; max-width: 1240px; margin: 0 auto; padding: 22px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+<a href="#top" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #EEEDFB">
+<svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><rect width="34" height="34" rx="10" fill="#FF6A1F"></rect><path d="M7 20v-6M12 24V10M17 22v-8M22 26V8M27 19v-4" stroke="#0A0C24" stroke-width="2.6" stroke-linecap="round"></path></svg>
+<span style="font-weight: 900; font-size: 22px; letter-spacing: -0.04em">셋리뷰</span>
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 13px; color: #B9B8E0; letter-spacing: 0.02em">SetReview</span>
+</a>
+<nav class="sr-nav" aria-label="주요 메뉴" style="display: flex; flex-wrap: wrap; gap: 26px; font-size: 15px; font-weight: 500">
+<a href="#how" style="color: #DCDBF5; text-decoration: none">이용 방법</a>
+<a href="#setlist" style="color: #DCDBF5; text-decoration: none">예상 셋리스트</a>
+<a href="#chant" style="color: #DCDBF5; text-decoration: none">떼창 지수</a>
+<a href="#live" style="color: #DCDBF5; text-decoration: none">실시간 싱크</a>
+<a href="#pricing" style="color: #DCDBF5; text-decoration: none">요금</a>
+<a href="#faq" style="color: #DCDBF5; text-decoration: none">FAQ</a>
+</nav>
+<div style="display: flex; gap: 10px; align-items: center">
+<button class="sr-hide-sm" data-bgm-btn type="button" data-action="toggleBgm" aria-pressed="false" aria-label="배경 음악 켜기" style="display: flex; align-items: center; gap: 8px; background: rgba(10,12,36,0.5); color: #EEEDFB; border: 1px solid rgba(238,237,251,0.3); border-radius: 999px; padding: 0 16px; min-height: 44px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer">
+<span class="eq-off" style="display: flex; align-items: flex-end; gap: 2px; height: 14px" aria-hidden="true"><span style="width: 3px; height: 14px; background: currentColor; border-radius: 1px"></span><span style="width: 3px; height: 14px; background: currentColor; border-radius: 1px"></span><span style="width: 3px; height: 14px; background: currentColor; border-radius: 1px"></span><span style="width: 3px; height: 14px; background: currentColor; border-radius: 1px"></span></span>
+BGM <span data-bind="bgmState">OFF</span>
+</button>
+<a class="sr-cta-top" href="#download" style="background: #FF6A1F; color: #0A0C24; font-weight: 700; padding: 12px 22px; border-radius: 999px; text-decoration: none; font-size: 15px">출시 알림 받기</a>
+<button class="sr-menu-btn" type="button" data-action="toggleMenu" aria-expanded="false" aria-controls="sr-mobile-menu" aria-label="메뉴 열기" style="width: 48px; height: 48px; border-radius: 14px; border: 1px solid rgba(238,237,251,0.3); background: rgba(10,12,36,0.6); cursor: pointer; align-items: center; justify-content: center">
+<span data-show="menuOpen" hidden>
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EEEDFB" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+</span>
+<span data-show="menuClosed">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EEEDFB" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
+</span>
+</button>
+</div>
+<span data-show="menuOpen" hidden>
+<nav id="sr-mobile-menu" aria-label="모바일 메뉴" style="flex: 1 1 100%; background: rgba(18,22,60,0.97); border: 1px solid rgba(238,237,251,0.16); border-radius: 22px; padding: 10px; display: flex; flex-direction: column">
+
+<a href="#how" data-action="closeMenu" style="color: #EEEDFB; text-decoration: none; font-size: 17px; font-weight: 700; padding: 15px 14px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center">이용 방법<span style="color: #FF8A3D" aria-hidden="true">→</span></a>
+
+<a href="#setlist" data-action="closeMenu" style="color: #EEEDFB; text-decoration: none; font-size: 17px; font-weight: 700; padding: 15px 14px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center">예상 셋리스트<span style="color: #FF8A3D" aria-hidden="true">→</span></a>
+
+<a href="#chant" data-action="closeMenu" style="color: #EEEDFB; text-decoration: none; font-size: 17px; font-weight: 700; padding: 15px 14px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center">떼창 지수<span style="color: #FF8A3D" aria-hidden="true">→</span></a>
+
+<a href="#live" data-action="closeMenu" style="color: #EEEDFB; text-decoration: none; font-size: 17px; font-weight: 700; padding: 15px 14px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center">실시간 싱크<span style="color: #FF8A3D" aria-hidden="true">→</span></a>
+
+<a href="#pricing" data-action="closeMenu" style="color: #EEEDFB; text-decoration: none; font-size: 17px; font-weight: 700; padding: 15px 14px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center">요금<span style="color: #FF8A3D" aria-hidden="true">→</span></a>
+
+<a href="#faq" data-action="closeMenu" style="color: #EEEDFB; text-decoration: none; font-size: 17px; font-weight: 700; padding: 15px 14px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center">자주 묻는 질문<span style="color: #FF8A3D" aria-hidden="true">→</span></a>
+
+<div style="display: flex; gap: 10px; padding: 10px 4px 4px">
+<button type="button" data-action="toggleBgm" aria-pressed="false" style="flex: 1 1 0; min-height: 48px; border-radius: 14px; border: 1px solid rgba(238,237,251,0.3); background: transparent; color: #EEEDFB; font-family: inherit; font-weight: 700; font-size: 15px; cursor: pointer">BGM <span data-bind="bgmState">OFF</span></button>
+<a href="#download" data-action="closeMenu" style="flex: 1 1 0; min-height: 48px; border-radius: 14px; background: #FF6A1F; color: #0A0C24; font-weight: 700; font-size: 15px; text-decoration: none; display: flex; align-items: center; justify-content: center">출시 알림 받기</a>
+</div>
+</nav>
+</span>
+</header>
+
+<div style="position: relative; max-width: 1240px; margin: 0 auto; padding: 88px 24px 120px; display: flex; flex-wrap: wrap; gap: 56px; align-items: center">
+<div style="flex: 1 1 540px; min-width: 0; display: flex; flex-direction: column; gap: 28px">
+<span style="font-family: 'Instrument Serif', serif; font-style: italic; font-size: 30px; color: #FFB27A; line-height: 1">tonight, every song is yours.</span>
+<h1 style="margin: 0; font-weight: 900; font-size: clamp(36px, 6vw, 86px); line-height: 1.12; letter-spacing: -0.045em">모르는 노래 없이,<br><span style="color: #FF6A1F">떼창 타이밍</span>까지<br>완벽하게.</h1>
+<p style="margin: 0; font-size: 19px; line-height: 1.75; color: #DCDBF5; max-width: 540px">셋리스트를 완벽하게 예습하고, 벅찬 여운을 영원히 복습하는 가장 스마트한 방법. 내가 갈 공연의 예상 셋리스트를 순서 그대로 Spotify 플레이리스트에 담아 드려요.</p>
+<form style="display: flex; flex-wrap: wrap; gap: 10px; background: rgba(20,24,64,0.88); border: 1px solid rgba(238,237,251,0.18); border-radius: 18px; padding: 10px; max-width: 600px">
+<label for="fest-search" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">공연 또는 아티스트 검색</label>
+<input id="fest-search" type="search" placeholder="공연·아티스트 검색 · 예: Bruno Mars, Maroon 5" style="flex: 1 1 260px; min-width: 0; background: transparent; border: 0; color: #EEEDFB; font-size: 16px; padding: 14px 12px; font-family: inherit; outline: none">
+<button type="button" style="background: #FF6A1F; color: #0A0C24; border: 0; border-radius: 12px; padding: 14px 24px; font-weight: 700; font-size: 16px; font-family: inherit; cursor: pointer; min-height: 48px">예습 리스트 만들기</button>
+</form>
+<div style="display: flex; flex-wrap: wrap; gap: 18px; font-size: 14px; color: #B9B8E0">
+<span style="display: flex; align-items: center; gap: 8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF8A3D" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Spotify 플레이리스트 연동</span>
+<span style="display: flex; align-items: center; gap: 8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF8A3D" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>2026년 11월 출시</span>
+<span style="display: flex; align-items: center; gap: 8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF8A3D" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>월 12,000원</span>
+</div>
+</div>
+
+<div style="flex: 1 1 420px; min-width: 0">
+<div style="background: rgba(18,22,60,0.93); border: 1px solid rgba(238,237,251,0.16); border-radius: 28px; padding: 28px; display: flex; flex-direction: column; gap: 22px; box-shadow: 0 40px 90px rgba(0,0,0,0.55)">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; font-family: 'Space Grotesk', sans-serif; font-size: 12px; letter-spacing: 0.06em; color: #B9B8E0">
+<span>NOW PREPPING · 예시</span>
+<span style="color: #FF8A3D">SETLIST 04 / 20</span>
+</div>
+<div style="display: flex; gap: 18px; align-items: center">
+<img loading="lazy" decoding="async" src="assets/img/uj.jpg" alt="" style="width: 88px; height: 88px; border-radius: 18px; object-fit: cover; flex: none">
+<div style="display: flex; flex-direction: column; gap: 6px; min-width: 0">
+<span style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em">Locked Out of Heaven</span>
+<span style="color: #B9B8E0">Bruno Mars</span>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: flex-end; gap: 3px; height: 88px" role="img" aria-label="곡 구조 파형: 두 번째 후렴이 하이라이트, 마지막 후렴이 떼창 포인트">
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 18%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 54%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 77%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 79%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 62%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 36%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 24%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 35%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 32%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 21%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 24%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 23%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 28%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 50%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 68%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 72%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 55%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 23%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 50%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 78%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 86%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 72%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 44%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 22%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 42%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 47%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 38%; background: #FFB27A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 24%; background: #FFB27A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 19%; background: #FFB27A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 22%; background: #FFB27A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 37%; background: #FFB27A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 54%; background: #FFB27A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 62%; background: #FFB27A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 53%; background: #FFB27A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 27%; background: #FFB27A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 44%; background: #FFB27A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 74%; background: #FFB27A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 88%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 79%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 52%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 19%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 47%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 59%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 54%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 39%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 23%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 18%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 24%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 38%; background: #FF6A1F"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 49%; background: #FF6A1F"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 47%; background: #FF6A1F"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 29%; background: #FF6A1F"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 37%; background: #FF6A1F"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 67%; background: #FF6A1F"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 85%; background: #FF6A1F"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 82%; background: #FF6A1F"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 58%; background: #FF6A1F"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 22%; background: #FF6A1F"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 48%; background: #34397A"></div>
+
+<div style="flex: 1 1 0; border-radius: 2px; height: 67%; background: #34397A"></div>
+
+</div>
+<div style="display: flex; justify-content: space-between; font-family: 'Space Grotesk', sans-serif; font-size: 12px; color: #B9B8E0"><span>인트로</span><span>벌스</span><span>후렴 2</span><span>마지막 후렴</span></div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<div style="background: #1C2158; border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 12px; color: #FFB27A; font-weight: 700">하이라이트</span>
+<span style="font-size: 17px; font-weight: 700">두 번째 후렴</span>
+</div>
+<div style="background: #FF6A1F; color: #0A0C24; border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 12px; font-weight: 700">떼창 지수 92</span>
+<span style="font-size: 17px; font-weight: 900">마지막 후렴</span>
+</div>
+</div>
+<div style="display: flex; gap: 10px">
+<button type="button" aria-label="이전 곡" style="width: 48px; height: 48px; border-radius: 50%; border: 1px solid rgba(238,237,251,0.25); background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EEEDFB" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 20 9 12l10-8v16zM5 19V5"></path></svg></button>
+<button type="button" style="flex: 1 1 auto; background: #EEEDFB; color: #0A0C24; border: 0; border-radius: 999px; font-family: inherit; font-weight: 700; font-size: 15px; cursor: pointer; min-height: 48px">하이라이트만 듣기</button>
+<button type="button" aria-label="다음 곡" style="width: 48px; height: 48px; border-radius: 50%; border: 1px solid rgba(238,237,251,0.25); background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EEEDFB" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 4 10 8-10 8V4zM19 5v14"></path></svg></button>
+</div>
+</div>
+</div>
+</div>
+
+<div style="position: relative; max-width: 1240px; margin: 0 auto; padding: 0 24px 80px">
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 1px; background: rgba(238,237,251,0.12); border: 1px solid rgba(238,237,251,0.12); border-radius: 22px; overflow: hidden">
+
+<div style="background: rgba(13,16,46,0.96); padding: 26px; display: flex; gap: 16px; align-items: flex-start">
+<span style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; color: #FF8A3D; font-size: 15px; padding-top: 2px">01</span>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-weight: 700; font-size: 16px">실제 셋리스트 기반</span>
+<span style="font-size: 14px; color: #B9B8E0; line-height: 1.6">최근 투어에서 연주된 곡과 순서로 예측해요</span>
+</div>
+</div>
+
+<div style="background: rgba(13,16,46,0.96); padding: 26px; display: flex; gap: 16px; align-items: flex-start">
+<span style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; color: #FF8A3D; font-size: 15px; padding-top: 2px">02</span>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-weight: 700; font-size: 16px">Spotify 자동 저장</span>
+<span style="font-size: 14px; color: #B9B8E0; line-height: 1.6">공연 순서 그대로 플레이리스트가 만들어져요</span>
+</div>
+</div>
+
+<div style="background: rgba(13,16,46,0.96); padding: 26px; display: flex; gap: 16px; align-items: flex-start">
+<span style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; color: #FF8A3D; font-size: 15px; padding-top: 2px">03</span>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-weight: 700; font-size: 16px">떼창 지수</span>
+<span style="font-size: 14px; color: #B9B8E0; line-height: 1.6">함께 부를 구간을 점수로 알려드려요</span>
+</div>
+</div>
+
+<div style="background: rgba(13,16,46,0.96); padding: 26px; display: flex; gap: 16px; align-items: flex-start">
+<span style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; color: #FF8A3D; font-size: 15px; padding-top: 2px">04</span>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-weight: 700; font-size: 16px">실시간 업데이트</span>
+<span style="font-size: 14px; color: #B9B8E0; line-height: 1.6">방금 부른 곡이 바로 반영돼요</span>
+</div>
+</div>
+
+</div>
+</div>
+</section>
+
+<section aria-label="덕후들의 고민" style="max-width: 1240px; margin: 0 auto; padding: 104px 24px; display: flex; flex-direction: column; gap: 44px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 24px">
+<div style="display: flex; flex-direction: column; gap: 14px">
+<span style="font-family: 'Instrument Serif', serif; font-style: italic; font-size: 26px; color: #FFB27A">sound familiar?</span>
+<h2 style="margin: 0; font-weight: 900; font-size: clamp(32px, 3.8vw, 50px); line-height: 1.25; letter-spacing: -0.04em">라인업이 뜬 날,<br>설렘보다 막막함이 컸다면</h2>
+</div>
+<p style="margin: 0; max-width: 440px; color: #B9B8E0; font-size: 17px; line-height: 1.8">매년 페스티벌과 내한 공연을 빠짐없이 찾아다니는 음악 덕후들이 가장 많이 털어놓은 두 가지 고민에서 셋리뷰가 시작됐어요.</p>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 20px">
+
+<article style="background: #12163C; border: 1px solid rgba(238,237,251,0.1); border-radius: 26px; padding: 36px; display: flex; flex-direction: column; gap: 22px">
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 12px; letter-spacing: 0.12em; color: #FF8A3D">BEFORE THE SHOW</span>
+<blockquote style="margin: 0; font-size: 21px; line-height: 1.7; font-weight: 500; letter-spacing: -0.02em">“처음 보는 해외 밴드나 인디 아티스트가 많아서, 어떤 노래를 예습해야 할지 유튜브랑 멜론을 뒤지다 진이 다 빠져요.”</blockquote>
+<div style="display: flex; align-items: center; gap: 12px; border-top: 1px solid rgba(238,237,251,0.1); padding-top: 20px; color: #DCDBF5; font-size: 15px">
+<span style="width: 32px; height: 32px; border-radius: 50%; background: #FF6A1F; display: flex; align-items: center; justify-content: center; flex: none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0A0C24" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></span>
+라인업 전체를 예상 셋리스트 순서로 한 번에 담아 드려요
+</div>
+</article>
+
+<article style="background: #12163C; border: 1px solid rgba(238,237,251,0.1); border-radius: 26px; padding: 36px; display: flex; flex-direction: column; gap: 22px">
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 12px; letter-spacing: 0.12em; color: #FF8A3D">IN THE CROWD</span>
+<blockquote style="margin: 0; font-size: 21px; line-height: 1.7; font-weight: 500; letter-spacing: -0.02em">“막상 공연장에 갔는데 모르는 노래가 나와서 멍하니 서 있었고, 다 같이 떼창하는 타이밍을 놓쳐서 너무 아쉬웠어요.”</blockquote>
+<div style="display: flex; align-items: center; gap: 12px; border-top: 1px solid rgba(238,237,251,0.1); padding-top: 20px; color: #DCDBF5; font-size: 15px">
+<span style="width: 32px; height: 32px; border-radius: 50%; background: #FF6A1F; display: flex; align-items: center; justify-content: center; flex: none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0A0C24" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></span>
+곡마다 하이라이트와 떼창 포인트를 타임라인으로 짚어 드려요
+</div>
+</article>
+
+</div>
+</section>
+
+<section id="how" style="background: #0D1030; border-top: 1px solid rgba(238,237,251,0.08); border-bottom: 1px solid rgba(238,237,251,0.08)">
+<div style="max-width: 1240px; margin: 0 auto; padding: 112px 24px; display: flex; flex-direction: column; gap: 60px">
+<div style="display: flex; flex-direction: column; gap: 16px; align-items: center; text-align: center">
+<span style="font-family: 'Instrument Serif', serif; font-style: italic; font-size: 26px; color: #FFB27A">before · during · after</span>
+<h2 style="margin: 0; font-weight: 900; font-size: clamp(34px, 4.2vw, 56px); line-height: 1.2; letter-spacing: -0.045em">공연 전, 공연 중, 공연 후.<br><span style="color: #FF6A1F">셋리뷰 하나로.</span></h2>
+<p style="margin: 0; max-width: 600px; color: #B9B8E0; line-height: 1.8; font-size: 17px">예습부터 현장 싱크, 그날의 복습까지. 덕질의 모든 순간을 세 단계로 이어요.</p>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 24px">
+
+<article style="display: flex; flex-direction: column; gap: 24px">
+<div style="background: #12163C; border: 1px solid rgba(238,237,251,0.1); border-radius: 28px; padding: 28px 28px 0; height: 430px; overflow: hidden; display: flex; justify-content: center">
+<div style="width: 262px; background: #0A0C24; border: 8px solid #262B66; border-bottom: 0; border-radius: 38px 38px 0 0; padding: 22px 14px; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box">
+<span style="font-size: 11px; color: #B9B8E0">내 공연 · 예시</span>
+<span style="font-weight: 900; font-size: 19px; letter-spacing: -0.03em">이번 시즌 예습 리스트</span>
+
+<div style="display: flex; gap: 10px; align-items: center; background: #12163C; border-radius: 12px; padding: 8px">
+<img loading="lazy" decoding="async" src="assets/img/k24.jpg" alt="" style="width: 40px; height: 40px; border-radius: 9px; object-fit: cover; flex: none">
+<div style="display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 auto"><span style="font-size: 13px; font-weight: 700">Bruno Mars</span><span style="font-size: 11px; color: #B9B8E0">내한 공연 · D-12</span></div>
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 11px; color: #FF8A3D">20곡</span>
+</div>
+
+<div style="display: flex; gap: 10px; align-items: center; background: #12163C; border-radius: 12px; padding: 8px">
+<img loading="lazy" decoding="async" src="assets/img/v.jpg" alt="" style="width: 40px; height: 40px; border-radius: 9px; object-fit: cover; flex: none">
+<div style="display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 auto"><span style="font-size: 13px; font-weight: 700">Maroon 5</span><span style="font-size: 11px; color: #B9B8E0">내한 공연 · D-26</span></div>
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 11px; color: #FF8A3D">18곡</span>
+</div>
+
+<div style="display: flex; gap: 10px; align-items: center; background: #12163C; border-radius: 12px; padding: 8px">
+<img loading="lazy" decoding="async" src="assets/img/cover3.jpg" alt="" style="width: 40px; height: 40px; border-radius: 9px; object-fit: cover; flex: none">
+<div style="display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 auto"><span style="font-size: 13px; font-weight: 700">록 페스티벌 DAY 1</span><span style="font-size: 11px; color: #B9B8E0">출연 9팀 · D-41</span></div>
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 11px; color: #FF8A3D">64곡</span>
+</div>
+
+<div style="display: flex; gap: 10px; align-items: center; background: #12163C; border-radius: 12px; padding: 8px">
+<img loading="lazy" decoding="async" src="assets/img/cover6.jpg" alt="" style="width: 40px; height: 40px; border-radius: 9px; object-fit: cover; flex: none">
+<div style="display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 auto"><span style="font-size: 13px; font-weight: 700">뮤직 페스티벌</span><span style="font-size: 11px; color: #B9B8E0">출연 12팀 · D-58</span></div>
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 11px; color: #FF8A3D">81곡</span>
+</div>
+
+<span style="margin-top: 4px; background: #FF6A1F; color: #0A0C24; text-align: center; font-size: 12px; font-weight: 700; padding: 10px; border-radius: 10px">Spotify에 저장됨</span>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px; padding: 0 8px">
+<span style="font-family: 'Space Grotesk', sans-serif; color: #FF8A3D; font-size: 13px; letter-spacing: 0.08em">STEP 01 · 예습</span>
+<h3 style="margin: 0; font-size: 25px; font-weight: 700; letter-spacing: -0.03em">라인업 등록</h3>
+<p style="margin: 0; color: #B9B8E0; line-height: 1.8; font-size: 16px">내가 갈 공연을 선택하면 출연 아티스트의 최근 투어 기반 예상·확정 셋리스트가 Spotify 플레이리스트로 자동 연동돼요.</p>
+</div>
+</article>
+
+<article style="display: flex; flex-direction: column; gap: 24px">
+<div style="background: #12163C; border: 1px solid rgba(238,237,251,0.1); border-radius: 28px; padding: 28px 28px 0; height: 430px; overflow: hidden; display: flex; justify-content: center">
+<div style="width: 262px; background: #0A0C24; border: 8px solid #262B66; border-bottom: 0; border-radius: 38px 38px 0 0; padding: 22px 14px; display: flex; flex-direction: column; gap: 12px; box-sizing: border-box">
+<img loading="lazy" decoding="async" src="assets/img/v.jpg" alt="" style="width: 100%; aspect-ratio: 1 / 1; border-radius: 16px; object-fit: cover">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 15px; font-weight: 700">Animals</span><span style="font-size: 11px; color: #B9B8E0">Maroon 5</span></div>
+<div style="position: relative; height: 10px; background: #262B66; border-radius: 999px">
+<div style="position: absolute; left: 30%; width: 22%; top: 0; bottom: 0; background: #FFB27A; border-radius: 999px"></div>
+<div style="position: absolute; left: 74%; width: 18%; top: 0; bottom: 0; background: #FF6A1F; border-radius: 999px"></div>
+</div>
+<div style="display: flex; gap: 6px; flex-wrap: wrap"><span style="font-size: 11px; background: #1C2158; padding: 4px 8px; border-radius: 6px">하이라이트 · 첫 후렴</span><span style="font-size: 11px; background: #FF6A1F; color: #0A0C24; font-weight: 700; padding: 4px 8px; border-radius: 6px">떼창 · 마지막 후렴</span></div>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px; padding: 0 8px">
+<span style="font-family: 'Space Grotesk', sans-serif; color: #FF8A3D; font-size: 13px; letter-spacing: 0.08em">STEP 02 · 스마트 가이드</span>
+<h3 style="margin: 0; font-size: 25px; font-weight: 700; letter-spacing: -0.03em">핵심 구간 캐치</h3>
+<p style="margin: 0; color: #B9B8E0; line-height: 1.8; font-size: 16px">긴 곡이라도 공연에서 터지는 하이라이트 구간과 관객 떼창 포인트가 타임라인으로 표시돼요.</p>
+</div>
+</article>
+
+<article style="display: flex; flex-direction: column; gap: 24px">
+<div style="background: #12163C; border: 1px solid rgba(238,237,251,0.1); border-radius: 28px; padding: 28px 28px 0; height: 430px; overflow: hidden; display: flex; justify-content: center">
+<div style="width: 262px; background: #0A0C24; border: 8px solid #262B66; border-bottom: 0; border-radius: 38px 38px 0 0; padding: 22px 14px; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box">
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #FF6A1F"></span><span style="font-family: 'Space Grotesk', sans-serif; font-size: 11px; color: #FF8A3D; font-weight: 700; letter-spacing: 0.06em">LIVE · 예시</span></div>
+<span style="font-weight: 900; font-size: 19px; letter-spacing: -0.03em">Maroon 5 내한 공연</span>
+
+<div style="display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 8px 2px; border-bottom: 1px solid #1C2158">
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 11px; color: #8C8BC4">01</span>
+<span style="font-size: 13px; color: #B9B8E0; font-weight: 400">Moves Like Jagger</span>
+<span style="font-size: 10px; color: #B9B8E0">완료</span>
+</div>
+
+<div style="display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 8px 2px; border-bottom: 1px solid #1C2158">
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 11px; color: #8C8BC4">02</span>
+<span style="font-size: 13px; color: #B9B8E0; font-weight: 400">This Love</span>
+<span style="font-size: 10px; color: #B9B8E0">완료</span>
+</div>
+
+<div style="display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 8px 2px; border-bottom: 1px solid #1C2158">
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 11px; color: #8C8BC4">03</span>
+<span style="font-size: 13px; color: #B9B8E0; font-weight: 400">Animals</span>
+<span style="font-size: 10px; color: #B9B8E0">완료</span>
+</div>
+
+<div style="display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 8px 2px; border-bottom: 1px solid #1C2158">
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 11px; color: #8C8BC4">04</span>
+<span style="font-size: 13px; color: #FF8A3D; font-weight: 700">Sunday Morning</span>
+<span style="font-size: 10px; color: #FF8A3D">연주 중</span>
+</div>
+
+<div style="display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 8px 2px; border-bottom: 1px solid #1C2158">
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 11px; color: #8C8BC4">05</span>
+<span style="font-size: 13px; color: #8C8BC4; font-weight: 400">Girls Like You</span>
+<span style="font-size: 10px; color: #8C8BC4">예상</span>
+</div>
+
+<div style="display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 8px 2px; border-bottom: 1px solid #1C2158">
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 11px; color: #8C8BC4">EN</span>
+<span style="font-size: 13px; color: #8C8BC4; font-weight: 400">She Will Be Loved</span>
+<span style="font-size: 10px; color: #8C8BC4">앙코르</span>
+</div>
+
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px; padding: 0 8px">
+<span style="font-family: 'Space Grotesk', sans-serif; color: #FF8A3D; font-size: 13px; letter-spacing: 0.08em">STEP 03 · 현장 · 복습</span>
+<h3 style="margin: 0; font-size: 25px; font-weight: 700; letter-spacing: -0.03em">실시간 싱크</h3>
+<p style="margin: 0; color: #B9B8E0; line-height: 1.8; font-size: 16px">공연 중 혹은 직후, 아티스트가 방금 부른 실제 셋리스트가 실시간 업데이트되며 그날의 감동을 복습할 수 있어요.</p>
+</div>
+</article>
+
+</div>
+</div>
+</section>
+
+<section id="setlist" style="max-width: 1240px; margin: 0 auto; padding: 112px 24px; display: flex; flex-wrap: wrap; gap: 48px; align-items: flex-start">
+<div style="flex: 1 1 360px; min-width: 0; display: flex; flex-direction: column; gap: 22px">
+<span style="font-family: 'Instrument Serif', serif; font-style: italic; font-size: 26px; color: #FFB27A">predicted setlist</span>
+<h2 style="margin: 0; font-weight: 900; font-size: clamp(32px, 3.8vw, 50px); line-height: 1.25; letter-spacing: -0.045em">최근 투어로 예측한<br>오늘 밤의 순서</h2>
+<p style="margin: 0; color: #B9B8E0; line-height: 1.8; font-size: 17px">최근 투어에서 실제로 연주된 곡과 순서를 바탕으로 예상 셋리스트를 만들어요. 확정 셋리스트가 공개되면 자동으로 바뀌고, 곡마다 꼭 들어야 할 구간만 골라 들을 수 있어요.</p>
+<div style="background: #12163C; border: 1px solid rgba(238,237,251,0.1); border-radius: 22px; padding: 24px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-weight: 700">나의 예습 진행률</span><span style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; color: #FF8A3D">8 / 20곡</span></div>
+<div style="height: 10px; background: #262B66; border-radius: 999px; overflow: hidden"><div style="width: 40%; height: 100%; background: #FF6A1F; border-radius: 999px"></div></div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; text-align: center">
+<div style="background: #1C2158; border-radius: 14px; padding: 14px 6px; display: flex; flex-direction: column; gap: 4px"><span style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700">20</span><span style="font-size: 12px; color: #B9B8E0">예상 곡</span></div>
+<div style="background: #1C2158; border-radius: 14px; padding: 14px 6px; display: flex; flex-direction: column; gap: 4px"><span style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; color: #FF8A3D">7</span><span style="font-size: 12px; color: #B9B8E0">떼창 곡</span></div>
+<div style="background: #1C2158; border-radius: 14px; padding: 14px 6px; display: flex; flex-direction: column; gap: 4px"><span style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700">42분</span><span style="font-size: 12px; color: #B9B8E0">하이라이트만</span></div>
+</div>
+<span style="font-size: 12px; color: #9F9ED0">예시 데이터 · 실제 공연 셋리스트와 다를 수 있어요</span>
+</div>
+</div>
+<div style="flex: 2 1 580px; min-width: 0; background: #12163C; border: 1px solid rgba(238,237,251,0.1); border-radius: 26px; overflow: hidden">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding: 22px 28px; border-bottom: 1px solid rgba(238,237,251,0.1)">
+<div style="display: flex; gap: 14px; align-items: center">
+<img loading="lazy" decoding="async" src="assets/img/k24.jpg" alt="" style="width: 54px; height: 54px; border-radius: 14px; object-fit: cover">
+<div style="display: flex; flex-direction: column; gap: 4px"><span style="font-weight: 700; font-size: 18px">Bruno Mars 내한 공연</span><span style="font-size: 13px; color: #B9B8E0">예상 셋리스트 · 예시 데이터</span></div>
+</div>
+<button type="button" style="background: #FF6A1F; color: #0A0C24; border: 0; border-radius: 12px; padding: 10px 18px; font-family: inherit; font-weight: 700; font-size: 14px; cursor: pointer; min-height: 44px">Spotify에 저장</button>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; padding: 16px 28px; border-bottom: 1px solid rgba(238,237,251,0.06)">
+<span style="background: #EEEDFB; color: #0A0C24; padding: 7px 14px; border-radius: 999px; font-size: 13px; font-weight: 700">전체 20곡</span>
+<span style="border: 1px solid rgba(238,237,251,0.22); padding: 7px 14px; border-radius: 999px; font-size: 13px">떼창 곡만</span>
+<span style="border: 1px solid rgba(238,237,251,0.22); padding: 7px 14px; border-radius: 999px; font-size: 13px">변동 가능 곡</span>
+<span style="border: 1px solid rgba(238,237,251,0.22); padding: 7px 14px; border-radius: 999px; font-size: 13px">앙코르</span>
+</div>
+<ol style="margin: 0; padding: 0; list-style: none">
+
+<li style="display: grid; grid-template-columns: 32px 48px minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 14px 28px; border-bottom: 1px solid rgba(238,237,251,0.06)">
+<span style="font-family: 'Space Grotesk', sans-serif; color: #8C8BC4; font-size: 14px">01</span>
+<img loading="lazy" decoding="async" src="assets/img/k24.jpg" alt="" style="width: 48px; height: 48px; border-radius: 11px; object-fit: cover">
+<div style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+<span style="font-size: 17px; font-weight: 500; letter-spacing: -0.01em">24K Magic</span>
+<span style="font-size: 13px; color: #B9B8E0">오프닝 후보 · 하이라이트: 첫 후렴</span>
+</div>
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 8px; background: #1C2158; color: #DCDBF5; border: 1px solid #1C2158">확률 높음</span>
+</li>
+
+<li style="display: grid; grid-template-columns: 32px 48px minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 14px 28px; border-bottom: 1px solid rgba(238,237,251,0.06)">
+<span style="font-family: 'Space Grotesk', sans-serif; color: #8C8BC4; font-size: 14px">02</span>
+<img loading="lazy" decoding="async" src="assets/img/uj.jpg" alt="" style="width: 48px; height: 48px; border-radius: 11px; object-fit: cover">
+<div style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+<span style="font-size: 17px; font-weight: 500; letter-spacing: -0.01em">Treasure</span>
+<span style="font-size: 13px; color: #B9B8E0">떼창 지수 84 · 후렴 반복</span>
+</div>
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 8px; background: #FFB27A; color: #0A0C24; border: 1px solid #FFB27A">떼창</span>
+</li>
+
+<li style="display: grid; grid-template-columns: 32px 48px minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 14px 28px; border-bottom: 1px solid rgba(238,237,251,0.06)">
+<span style="font-family: 'Space Grotesk', sans-serif; color: #8C8BC4; font-size: 14px">03</span>
+<img loading="lazy" decoding="async" src="assets/img/k24.jpg" alt="" style="width: 48px; height: 48px; border-radius: 11px; object-fit: cover">
+<div style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+<span style="font-size: 17px; font-weight: 500; letter-spacing: -0.01em">That's What I Like</span>
+<span style="font-size: 13px; color: #B9B8E0">하이라이트: 두 번째 후렴</span>
+</div>
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 8px; background: #1C2158; color: #DCDBF5; border: 1px solid #1C2158">확률 높음</span>
+</li>
+
+<li style="display: grid; grid-template-columns: 32px 48px minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 14px 28px; border-bottom: 1px solid rgba(238,237,251,0.06)">
+<span style="font-family: 'Space Grotesk', sans-serif; color: #8C8BC4; font-size: 14px">04</span>
+<img loading="lazy" decoding="async" src="assets/img/uj.jpg" alt="" style="width: 48px; height: 48px; border-radius: 11px; object-fit: cover">
+<div style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+<span style="font-size: 17px; font-weight: 500; letter-spacing: -0.01em">Locked Out of Heaven</span>
+<span style="font-size: 13px; color: #B9B8E0">떼창 지수 92 · 마지막 후렴</span>
+</div>
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 8px; background: #FF6A1F; color: #0A0C24; border: 1px solid #FF6A1F">필수 떼창</span>
+</li>
+
+<li style="display: grid; grid-template-columns: 32px 48px minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 14px 28px; border-bottom: 1px solid rgba(238,237,251,0.06)">
+<span style="font-family: 'Space Grotesk', sans-serif; color: #8C8BC4; font-size: 14px">05</span>
+<img loading="lazy" decoding="async" src="assets/img/dw.jpg" alt="" style="width: 48px; height: 48px; border-radius: 11px; object-fit: cover">
+<div style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+<span style="font-size: 17px; font-weight: 500; letter-spacing: -0.01em">Marry You</span>
+<span style="font-size: 13px; color: #B9B8E0">어쿠스틱 편곡 가능성</span>
+</div>
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 8px; background: transparent; color: #FF8A3D; border: 1px solid #FF8A3D">변동</span>
+</li>
+
+<li style="display: grid; grid-template-columns: 32px 48px minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 14px 28px; border-bottom: 1px solid rgba(238,237,251,0.06)">
+<span style="font-family: 'Space Grotesk', sans-serif; color: #8C8BC4; font-size: 14px">06</span>
+<img loading="lazy" decoding="async" src="assets/img/uj.jpg" alt="" style="width: 48px; height: 48px; border-radius: 11px; object-fit: cover">
+<div style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+<span style="font-size: 17px; font-weight: 500; letter-spacing: -0.01em">When I Was Your Man</span>
+<span style="font-size: 13px; color: #B9B8E0">떼창 지수 90 · 피아노 발라드 전 구간</span>
+</div>
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 8px; background: #FF6A1F; color: #0A0C24; border: 1px solid #FF6A1F">필수 떼창</span>
+</li>
+
+<li style="display: grid; grid-template-columns: 32px 48px minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 14px 28px; border-bottom: 1px solid rgba(238,237,251,0.06)">
+<span style="font-family: 'Space Grotesk', sans-serif; color: #8C8BC4; font-size: 14px">07</span>
+<img loading="lazy" decoding="async" src="assets/img/dw.jpg" alt="" style="width: 48px; height: 48px; border-radius: 11px; object-fit: cover">
+<div style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+<span style="font-size: 17px; font-weight: 500; letter-spacing: -0.01em">Grenade</span>
+<span style="font-size: 13px; color: #B9B8E0">떼창 지수 78 · 후렴</span>
+</div>
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 8px; background: #FFB27A; color: #0A0C24; border: 1px solid #FFB27A">떼창</span>
+</li>
+
+<li style="display: grid; grid-template-columns: 32px 48px minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 14px 28px; border-bottom: 1px solid rgba(238,237,251,0.06)">
+<span style="font-family: 'Space Grotesk', sans-serif; color: #8C8BC4; font-size: 14px">EN</span>
+<img loading="lazy" decoding="async" src="assets/img/dw.jpg" alt="" style="width: 48px; height: 48px; border-radius: 11px; object-fit: cover">
+<div style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+<span style="font-size: 17px; font-weight: 500; letter-spacing: -0.01em">Just the Way You Are</span>
+<span style="font-size: 13px; color: #B9B8E0">앙코르 후보 · 떼창 지수 96</span>
+</div>
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 8px; background: #EEEDFB; color: #0A0C24; border: 1px solid #EEEDFB">앙코르</span>
+</li>
+
+</ol>
+<div style="padding: 18px 28px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 14px; color: #B9B8E0">
+<span>+ 12곡 더 보기</span>
+<span>앨범 아트 © 각 아티스트·음반사 · 시안용 예시</span>
+</div>
+</div>
+</section>
+
+<section id="chant" style="max-width: 1240px; margin: 0 auto; padding: 0 24px 112px; display: flex; flex-direction: column; gap: 20px">
+<div style="position: relative; border-radius: 32px; overflow: hidden; min-height: 620px; display: flex; align-items: flex-end">
+<img loading="lazy" decoding="async" src="assets/img/chant.jpg" alt="오렌지 조명 아래 손을 들고 떼창하는 관객들" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover">
+<div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,12,36,0.2) 0%, rgba(10,12,36,0.55) 40%, rgba(10,12,36,0.96) 82%)" aria-hidden="true"></div>
+<div style="position: relative; width: 100%; padding: clamp(28px, 5vw, 56px); display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-end; justify-content: space-between; box-sizing: border-box">
+<div style="flex: 1 1 420px; display: flex; flex-direction: column; gap: 16px">
+<span style="font-family: 'Instrument Serif', serif; font-style: italic; font-size: 28px; color: #FFB27A">sing it with everyone.</span>
+<h2 style="margin: 0; font-weight: 900; font-size: clamp(36px, 4.8vw, 64px); line-height: 1.15; letter-spacing: -0.045em">다 같이 외치는 그 순간,<br>이번엔 내 목소리도.</h2>
+<p style="margin: 0; font-size: 18px; line-height: 1.75; color: #EEEDFB; max-width: 520px">곡마다 관객이 실제로 함께 부르는 구간을 '떼창 지수'로 알려드려요. 예습 모드에서 그 부분만 반복해서 따라 불러 보세요.</p>
+</div>
+<div style="flex: 0 1 400px; background: rgba(10,12,36,0.9); border: 1px solid rgba(238,237,251,0.18); border-radius: 22px; padding: 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: center; gap: 12px"><img loading="lazy" decoding="async" src="assets/img/mlj.jpg" alt="" style="width: 52px; height: 52px; border-radius: 10px; object-fit: cover; flex: none"><div style="display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 auto"><span style="font-weight: 700; font-size: 15px">Moves Like Jagger</span><span style="font-size: 13px; color: #B9B8E0">Maroon 5</span></div><span style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; color: #FF8A3D; font-size: 14px; text-align: right; flex: none">떼창 지수<br>95</span></div>
+<div style="position: relative; height: 12px; background: #262B66; border-radius: 999px">
+<div style="position: absolute; left: 22%; width: 14%; top: 0; bottom: 0; background: #FFB27A; border-radius: 999px"></div>
+<div style="position: absolute; left: 50%; width: 14%; top: 0; bottom: 0; background: #FF6A1F; border-radius: 999px"></div>
+<div style="position: absolute; left: 80%; width: 16%; top: 0; bottom: 0; background: #FF6A1F; border-radius: 999px"></div>
+</div>
+<div style="display: flex; justify-content: space-between; font-size: 12px; color: #B9B8E0"><span>후렴 1</span><span>후렴 2 · 떼창</span><span>마지막 후렴 · 떼창</span></div>
+<button type="button" style="background: #FF6A1F; color: #0A0C24; border: 0; border-radius: 12px; padding: 14px; font-family: inherit; font-weight: 700; font-size: 15px; cursor: pointer; min-height: 48px">떼창 구간 반복 재생</button>
+</div>
+</div>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 20px">
+<div style="flex: 1 1 380px; background: #12163C; border: 1px solid rgba(238,237,251,0.1); border-radius: 26px; padding: 32px; display: flex; flex-direction: column; gap: 18px">
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 12px; letter-spacing: 0.12em; color: #FF8A3D">HOW WE SCORE</span>
+<h3 style="margin: 0; font-size: 26px; font-weight: 900; letter-spacing: -0.04em; line-height: 1.35">떼창 지수는 이렇게 매겨요</h3>
+<p style="margin: 0; color: #B9B8E0; line-height: 1.8; font-size: 15px">네 가지 신호를 합쳐 곡의 구간마다 0~100점을 매겨요. 70점 이상인 구간을 떼창 포인트로 표시하고, 90점 이상은 '필수 떼창'으로 강조해요.</p>
+<div style="display: flex; gap: 10px; flex-wrap: wrap; font-size: 13px">
+<span style="background: #FF6A1F; color: #0A0C24; font-weight: 700; padding: 6px 12px; border-radius: 999px">90+ 필수 떼창</span>
+<span style="background: #FFB27A; color: #0A0C24; font-weight: 700; padding: 6px 12px; border-radius: 999px">70–89 떼창 포인트</span>
+<span style="border: 1px solid rgba(238,237,251,0.22); padding: 6px 12px; border-radius: 999px">70 미만 표시 안 함</span>
+</div>
+</div>
+<div style="flex: 1.4 1 520px; min-width: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 14px">
+
+<article style="background: #12163C; border: 1px solid rgba(238,237,251,0.1); border-radius: 22px; padding: 22px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-weight: 700; font-size: 17px">현장 합창 감지</span><span style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px; color: #FF8A3D">40%</span></div>
+<div style="height: 6px; background: #262B66; border-radius: 999px; overflow: hidden"><div style="width: 40%; height: 100%; background: #FF6A1F"></div></div>
+<p style="margin: 0; color: #B9B8E0; line-height: 1.7; font-size: 14px">최근 투어의 공개 라이브 영상 음원에서 관객 합창 소리가 보컬만큼 커지는 구간을 찾아내요.</p>
+</article>
+
+<article style="background: #12163C; border: 1px solid rgba(238,237,251,0.1); border-radius: 22px; padding: 22px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-weight: 700; font-size: 17px">투어 기록</span><span style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px; color: #FF8A3D">25%</span></div>
+<div style="height: 6px; background: #262B66; border-radius: 999px; overflow: hidden"><div style="width: 25%; height: 100%; background: #FF6A1F"></div></div>
+<p style="margin: 0; color: #B9B8E0; line-height: 1.7; font-size: 14px">아티스트가 마이크를 관객에게 넘기거나 후렴을 반복하는 구간이 여러 공연에서 되풀이됐는지 확인해요.</p>
+</article>
+
+<article style="background: #12163C; border: 1px solid rgba(238,237,251,0.1); border-radius: 22px; padding: 22px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-weight: 700; font-size: 17px">덕후 태그</span><span style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px; color: #FF8A3D">25%</span></div>
+<div style="height: 6px; background: #262B66; border-radius: 999px; overflow: hidden"><div style="width: 25%; height: 100%; background: #FF6A1F"></div></div>
+<p style="margin: 0; color: #B9B8E0; line-height: 1.7; font-size: 14px">공연을 다녀온 셋리뷰 사용자가 현장에서 누른 &quot;여기서 떼창!&quot; 태그를 모아 반영해요.</p>
+</article>
+
+<article style="background: #12163C; border: 1px solid rgba(238,237,251,0.1); border-radius: 22px; padding: 22px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-weight: 700; font-size: 17px">곡 구조</span><span style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px; color: #FF8A3D">10%</span></div>
+<div style="height: 6px; background: #262B66; border-radius: 999px; overflow: hidden"><div style="width: 10%; height: 100%; background: #FF6A1F"></div></div>
+<p style="margin: 0; color: #B9B8E0; line-height: 1.7; font-size: 14px">후렴 반복 횟수, 따라 부르기 쉬운 멜로디, 박수·구호 구간 같은 곡의 구조를 분석해요.</p>
+</article>
+
+</div>
+</div>
+</section>
+
+<section id="live" style="background: #FF6A1F; color: #0A0C24">
+<div style="max-width: 1240px; margin: 0 auto; padding: 112px 24px; display: flex; flex-direction: column; gap: 48px">
+<div style="display: flex; flex-wrap: wrap; gap: 48px; align-items: flex-end; justify-content: space-between">
+<div style="flex: 1 1 480px; display: flex; flex-direction: column; gap: 18px">
+<span style="font-family: 'Instrument Serif', serif; font-style: italic; font-size: 28px">live sync</span>
+<h2 style="margin: 0; font-weight: 900; font-size: clamp(36px, 4.6vw, 62px); line-height: 1.15; letter-spacing: -0.045em">방금 그 무대가<br>그대로 플레이리스트로.</h2>
+</div>
+<p style="flex: 0 1 460px; margin: 0; font-size: 18px; line-height: 1.8; color: #2A1406">공연 중에도, 끝난 직후에도. 아티스트가 실제로 부른 셋리스트가 곡 단위로 업데이트돼요. 앙코르에 깜짝 등장한 곡까지 놓치지 않고, 집에 가는 길에 그날의 감동을 Spotify로 그대로 복습하세요.</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: stretch">
+<div style="flex: 1.3 1 520px; min-width: 0; border-radius: 26px; overflow: hidden; position: relative; min-height: 440px">
+<img loading="lazy" decoding="async" src="assets/img/encore.jpg" alt="앙코르 무대의 조명과 휴대폰 불빛을 든 관객" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover">
+<div style="position: absolute; left: 20px; top: 20px; background: #0A0C24; color: #EEEDFB; border-radius: 14px; padding: 12px 16px; display: flex; gap: 10px; align-items: center">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FF6A1F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"></path></svg>
+<span style="font-size: 14px">앙코르 곡이 추가됐어요 · <b style="color: #FF8A3D">She Will Be Loved</b></span>
+</div>
+</div>
+<div style="flex: 1 1 380px; min-width: 0; background: #0A0C24; color: #EEEDFB; border-radius: 26px; padding: 28px; display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid rgba(238,237,251,0.1)"><span style="font-weight: 700">Maroon 5 · 오늘 (예시)</span><span style="font-family: 'Space Grotesk', sans-serif; font-size: 12px; color: #FF8A3D">17곡 확인됨</span></div>
+
+<div style="display: grid; grid-template-columns: 44px 40px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(238,237,251,0.08)">
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 13px; color: #B9B8E0">20:12</span>
+<img loading="lazy" decoding="async" src="assets/img/mlj.jpg" alt="" style="width: 40px; height: 40px; border-radius: 8px; object-fit: cover">
+<span style="font-size: 16px">Moves Like Jagger</span>
+<span style="font-size: 12px; font-weight: 700; color: #B9B8E0">연주 완료</span>
+</div>
+
+<div style="display: grid; grid-template-columns: 44px 40px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(238,237,251,0.08)">
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 13px; color: #B9B8E0">20:17</span>
+<img loading="lazy" decoding="async" src="assets/img/saj.jpg" alt="" style="width: 40px; height: 40px; border-radius: 8px; object-fit: cover">
+<span style="font-size: 16px">This Love</span>
+<span style="font-size: 12px; font-weight: 700; color: #B9B8E0">연주 완료</span>
+</div>
+
+<div style="display: grid; grid-template-columns: 44px 40px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(238,237,251,0.08)">
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 13px; color: #B9B8E0">20:22</span>
+<img loading="lazy" decoding="async" src="assets/img/v.jpg" alt="" style="width: 40px; height: 40px; border-radius: 8px; object-fit: cover">
+<span style="font-size: 16px">Animals</span>
+<span style="font-size: 12px; font-weight: 700; color: #B9B8E0">연주 완료</span>
+</div>
+
+<div style="display: grid; grid-template-columns: 44px 40px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(238,237,251,0.08)">
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 13px; color: #B9B8E0">20:29</span>
+<img loading="lazy" decoding="async" src="assets/img/saj.jpg" alt="" style="width: 40px; height: 40px; border-radius: 8px; object-fit: cover">
+<span style="font-size: 16px">Sunday Morning</span>
+<span style="font-size: 12px; font-weight: 700; color: #FFB27A">새로 추가</span>
+</div>
+
+<div style="display: grid; grid-template-columns: 44px 40px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(238,237,251,0.08)">
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 13px; color: #B9B8E0">21:34</span>
+<img loading="lazy" decoding="async" src="assets/img/rpb.jpg" alt="" style="width: 40px; height: 40px; border-radius: 8px; object-fit: cover">
+<span style="font-size: 16px">Girls Like You</span>
+<span style="font-size: 12px; font-weight: 700; color: #B9B8E0">연주 완료</span>
+</div>
+
+<div style="display: grid; grid-template-columns: 44px 40px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(238,237,251,0.08)">
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 13px; color: #B9B8E0">21:41</span>
+<img loading="lazy" decoding="async" src="assets/img/saj.jpg" alt="" style="width: 40px; height: 40px; border-radius: 8px; object-fit: cover">
+<span style="font-size: 16px">She Will Be Loved</span>
+<span style="font-size: 12px; font-weight: 700; color: #FF8A3D">앙코르 · 연주 중</span>
+</div>
+
+<button type="button" style="margin-top: 16px; background: #FF6A1F; color: #0A0C24; border: 0; border-radius: 12px; padding: 14px; font-family: inherit; font-weight: 700; font-size: 15px; cursor: pointer; min-height: 48px">오늘 셋리스트를 Spotify에 저장</button>
+</div>
+</div>
+</div>
+</section>
+
+<section id="recap" style="max-width: 1240px; margin: 0 auto; padding: 120px 24px; display: flex; flex-wrap: wrap; gap: 64px; align-items: center">
+<div style="flex: 0 1 380px; min-width: 0; margin: 0 auto; position: relative">
+<div style="position: relative; border-radius: 28px; overflow: hidden; aspect-ratio: 3 / 4; box-shadow: 0 40px 90px rgba(0,0,0,0.55); transform: rotate(-2deg)">
+<img loading="lazy" decoding="async" src="assets/img/recap.jpg" alt="" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover">
+<div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,12,36,0.78) 0%, rgba(10,12,36,0.1) 45%, rgba(10,12,36,0.92) 100%)" aria-hidden="true"></div>
+<div style="position: absolute; inset: 0; padding: 28px; display: flex; flex-direction: column; justify-content: space-between">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-family: 'Instrument Serif', serif; font-style: italic; font-size: 22px; color: #FFB27A">my night</span>
+<span style="font-weight: 900; font-size: 30px; line-height: 1.2; letter-spacing: -0.04em">Bruno Mars<br>내한 공연</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700">20</span><span style="font-size: 12px; color: #DCDBF5">들은 곡</span></div>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700; color: #FF8A3D">7</span><span style="font-size: 12px; color: #DCDBF5">함께한 떼창</span></div>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700">1</span><span style="font-size: 12px; color: #DCDBF5">깜짝 곡</span></div>
+</div>
+</div>
+</div>
+<span style="position: absolute; right: -12px; top: -16px; background: #FF6A1F; color: #0A0C24; font-weight: 700; font-size: 13px; padding: 8px 14px; border-radius: 999px; transform: rotate(6deg)">공유용 복습 카드</span>
+</div>
+<div style="flex: 1 1 460px; min-width: 0; display: flex; flex-direction: column; gap: 24px">
+<span style="font-family: 'Instrument Serif', serif; font-style: italic; font-size: 28px; color: #FFB27A">afterglow</span>
+<h2 style="margin: 0; font-weight: 900; font-size: clamp(34px, 4.2vw, 56px); line-height: 1.2; letter-spacing: -0.045em">무대가 끝나도<br>여운은 계속되게.</h2>
+<p style="margin: 0; color: #B9B8E0; line-height: 1.8; font-size: 17px">그날 실제로 불린 셋리스트, 내가 함께한 떼창, 예상과 달랐던 깜짝 곡까지 한 장의 복습 카드로 정리해 드려요. 인스타그램 스토리로 바로 공유하고, 시즌이 끝나면 나만의 공연 연대기로 모아 보세요.</p>
+<ul style="margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 14px">
+
+<li style="background: #12163C; border: 1px solid rgba(238,237,251,0.1); border-radius: 18px; padding: 20px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-weight: 700; font-size: 16px">실제 셋리스트 복습</span>
+<span style="font-size: 14px; color: #B9B8E0; line-height: 1.65">그날 불린 순서 그대로 Spotify 플레이리스트가 만들어져요</span>
+</li>
+
+<li style="background: #12163C; border: 1px solid rgba(238,237,251,0.1); border-radius: 18px; padding: 20px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-weight: 700; font-size: 16px">복습 카드 공유</span>
+<span style="font-size: 14px; color: #B9B8E0; line-height: 1.65">들은 곡과 떼창 기록을 스토리용 카드로 공유해요</span>
+</li>
+
+<li style="background: #12163C; border: 1px solid rgba(238,237,251,0.1); border-radius: 18px; padding: 20px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-weight: 700; font-size: 16px">예상 vs 실제 비교</span>
+<span style="font-size: 14px; color: #B9B8E0; line-height: 1.65">예습과 달랐던 곡, 깜짝 커버를 따로 표시해요</span>
+</li>
+
+<li style="background: #12163C; border: 1px solid rgba(238,237,251,0.1); border-radius: 18px; padding: 20px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-weight: 700; font-size: 16px">시즌 공연 연대기</span>
+<span style="font-size: 14px; color: #B9B8E0; line-height: 1.65">한 해 동안 다녀온 공연이 하나의 기록으로 남아요</span>
+</li>
+
+</ul>
+</div>
+</section>
+
+<section id="season" style="background: #0D1030; border-top: 1px solid rgba(238,237,251,0.08); border-bottom: 1px solid rgba(238,237,251,0.08)">
+<div style="max-width: 1240px; margin: 0 auto; padding: 104px 24px; display: flex; flex-direction: column; gap: 36px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 14px">
+<span style="font-family: 'Instrument Serif', serif; font-style: italic; font-size: 26px; color: #FFB27A">my season board</span>
+<h2 style="margin: 0; font-weight: 900; font-size: clamp(32px, 3.8vw, 50px); line-height: 1.25; letter-spacing: -0.045em">이번 시즌 내 공연,<br>D-day와 예습률을 한눈에</h2>
+</div>
+<p style="margin: 0; max-width: 420px; color: #B9B8E0; font-size: 17px; line-height: 1.8">공연이 가까워질수록 남은 예습 곡을 알려드려요. 하루에 몇 곡씩 나눠 들으면 되는지도 계산해 드려요.</p>
+</div>
+<div style="position: relative; overflow-x: auto; border: 1px solid rgba(238,237,251,0.1); border-radius: 22px">
+<table style="width: 100%; min-width: 760px; border-collapse: collapse">
+<thead>
+<tr style="text-align: left; font-family: 'Space Grotesk', sans-serif; font-size: 12px; letter-spacing: 0.08em; color: #B9B8E0">
+<th style="padding: 16px 24px; font-weight: 500">D-DAY</th>
+<th style="padding: 16px 24px; font-weight: 500">공연</th>
+<th style="padding: 16px 24px; font-weight: 500">하루 권장</th>
+<th style="padding: 16px 24px; font-weight: 500">예습률</th>
+<th style="padding: 16px 24px; font-weight: 500"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">바로가기</span></th>
+</tr>
+</thead>
+<tbody>
+
+<tr style="border-top: 1px solid rgba(238,237,251,0.08)">
+<td style="padding: 18px 24px"><span style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 19px; color: #FF8A3D">D-12</span></td>
+<td style="padding: 18px 24px"><div style="display: flex; flex-direction: column; gap: 3px"><span style="font-weight: 700; font-size: 16px">Bruno Mars 내한 공연</span><span style="font-size: 13px; color: #B9B8E0">내한 공연 · 예상 20곡</span></div></td>
+<td style="padding: 18px 24px; font-size: 14px; color: #DCDBF5">하루 1곡</td>
+<td style="padding: 18px 24px"><div style="display: flex; align-items: center; gap: 12px"><div style="width: 140px; height: 8px; background: #262B66; border-radius: 999px; overflow: hidden"><div style="width: 40%; height: 100%; background: #FF6A1F"></div></div><span style="font-family: 'Space Grotesk', sans-serif; font-size: 13px">40%</span></div></td>
+<td style="padding: 18px 24px; text-align: right"><a href="#setlist" style="font-size: 14px; font-weight: 700; text-decoration: none">예습 이어하기 →</a></td>
+</tr>
+
+<tr style="border-top: 1px solid rgba(238,237,251,0.08)">
+<td style="padding: 18px 24px"><span style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 19px; color: #EEEDFB">D-26</span></td>
+<td style="padding: 18px 24px"><div style="display: flex; flex-direction: column; gap: 3px"><span style="font-weight: 700; font-size: 16px">Maroon 5 내한 공연</span><span style="font-size: 13px; color: #B9B8E0">내한 공연 · 예상 18곡</span></div></td>
+<td style="padding: 18px 24px; font-size: 14px; color: #DCDBF5">하루 1곡</td>
+<td style="padding: 18px 24px"><div style="display: flex; align-items: center; gap: 12px"><div style="width: 140px; height: 8px; background: #262B66; border-radius: 999px; overflow: hidden"><div style="width: 22%; height: 100%; background: #FF6A1F"></div></div><span style="font-family: 'Space Grotesk', sans-serif; font-size: 13px">22%</span></div></td>
+<td style="padding: 18px 24px; text-align: right"><a href="#setlist" style="font-size: 14px; font-weight: 700; text-decoration: none">예습 이어하기 →</a></td>
+</tr>
+
+<tr style="border-top: 1px solid rgba(238,237,251,0.08)">
+<td style="padding: 18px 24px"><span style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 19px; color: #EEEDFB">D-41</span></td>
+<td style="padding: 18px 24px"><div style="display: flex; flex-direction: column; gap: 3px"><span style="font-weight: 700; font-size: 16px">록 페스티벌 DAY 1</span><span style="font-size: 13px; color: #B9B8E0">록 페스티벌 · 9팀 64곡</span></div></td>
+<td style="padding: 18px 24px; font-size: 14px; color: #DCDBF5">하루 2곡</td>
+<td style="padding: 18px 24px"><div style="display: flex; align-items: center; gap: 12px"><div style="width: 140px; height: 8px; background: #262B66; border-radius: 999px; overflow: hidden"><div style="width: 9%; height: 100%; background: #FF6A1F"></div></div><span style="font-family: 'Space Grotesk', sans-serif; font-size: 13px">9%</span></div></td>
+<td style="padding: 18px 24px; text-align: right"><a href="#setlist" style="font-size: 14px; font-weight: 700; text-decoration: none">예습 이어하기 →</a></td>
+</tr>
+
+<tr style="border-top: 1px solid rgba(238,237,251,0.08)">
+<td style="padding: 18px 24px"><span style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 19px; color: #EEEDFB">D-58</span></td>
+<td style="padding: 18px 24px"><div style="display: flex; flex-direction: column; gap: 3px"><span style="font-weight: 700; font-size: 16px">뮤직 페스티벌</span><span style="font-size: 13px; color: #B9B8E0">뮤직 페스티벌 · 12팀 81곡</span></div></td>
+<td style="padding: 18px 24px; font-size: 14px; color: #DCDBF5">하루 2곡</td>
+<td style="padding: 18px 24px"><div style="display: flex; align-items: center; gap: 12px"><div style="width: 140px; height: 8px; background: #262B66; border-radius: 999px; overflow: hidden"><div style="width: 0%; height: 100%; background: #FF6A1F"></div></div><span style="font-family: 'Space Grotesk', sans-serif; font-size: 13px">0%</span></div></td>
+<td style="padding: 18px 24px; text-align: right"><a href="#setlist" style="font-size: 14px; font-weight: 700; text-decoration: none">예습 이어하기 →</a></td>
+</tr>
+
+</tbody>
+</table>
+</div>
+<span style="font-size: 13px; color: #9F9ED0">예시 화면이에요 · 실제 공연 일정은 출시 후 공식 발표 기준으로 표시돼요</span>
+</div>
+</section>
+
+<section id="pricing" style="max-width: 1240px; margin: 0 auto; padding: 112px 24px; display: flex; flex-wrap: wrap; gap: 56px; align-items: center">
+<div style="flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+<span style="font-family: 'Instrument Serif', serif; font-style: italic; font-size: 28px; color: #FFB27A">one simple plan</span>
+<h2 style="margin: 0; font-weight: 900; font-size: clamp(34px, 4.2vw, 56px); line-height: 1.2; letter-spacing: -0.045em">한 시즌의 모든 공연,<br>하나의 요금제로.</h2>
+<p style="margin: 0; color: #B9B8E0; font-size: 17px; line-height: 1.8">공연 수에 상관없이 모든 기능을 쓸 수 있어요. 언제든 해지할 수 있고, 해지해도 만들어 둔 Spotify 플레이리스트는 그대로 남아요.</p>
+</div>
+<div style="flex: 1 1 440px; min-width: 0; position: relative; background: #12163C; border: 1.5px solid #FF6A1F; border-radius: 30px; padding: 36px; display: flex; flex-direction: column; gap: 22px; box-shadow: 0 30px 80px rgba(255,106,31,0.12)">
+<span style="position: absolute; top: -14px; left: 32px; background: #FF6A1F; color: #0A0C24; font-weight: 700; font-size: 13px; padding: 6px 14px; border-radius: 999px">2026년 11월 출시</span>
+<div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px">
+<span style="font-weight: 900; font-size: 22px; letter-spacing: -0.03em">셋리뷰 멤버십</span>
+<div style="display: flex; align-items: baseline; gap: 6px"><span style="font-family: 'Space Grotesk', sans-serif; font-size: 46px; font-weight: 700; letter-spacing: -0.03em">12,000</span><span style="color: #B9B8E0">원 / 월</span></div>
+</div>
+<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 14px; border-top: 1px solid rgba(238,237,251,0.1); padding-top: 22px">
+
+<li style="display: flex; gap: 12px; align-items: flex-start; font-size: 16px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FF6A1F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 3px"><path d="M20 6 9 17l-5-5"></path></svg>공연·페스티벌 무제한 등록과 예상 셋리스트</li>
+
+<li style="display: flex; gap: 12px; align-items: flex-start; font-size: 16px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FF6A1F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 3px"><path d="M20 6 9 17l-5-5"></path></svg>Spotify 플레이리스트 자동 생성과 갱신</li>
+
+<li style="display: flex; gap: 12px; align-items: flex-start; font-size: 16px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FF6A1F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 3px"><path d="M20 6 9 17l-5-5"></path></svg>곡별 하이라이트 구간과 떼창 지수</li>
+
+<li style="display: flex; gap: 12px; align-items: flex-start; font-size: 16px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FF6A1F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 3px"><path d="M20 6 9 17l-5-5"></path></svg>공연 중 실시간 셋리스트 싱크와 알림</li>
+
+<li style="display: flex; gap: 12px; align-items: flex-start; font-size: 16px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FF6A1F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 3px"><path d="M20 6 9 17l-5-5"></path></svg>복습 플레이리스트와 공유용 복습 카드</li>
+
+<li style="display: flex; gap: 12px; align-items: flex-start; font-size: 16px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FF6A1F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 3px"><path d="M20 6 9 17l-5-5"></path></svg>시즌 보드와 하루 권장 예습량</li>
+
+</ul>
+<a href="#download" style="background: #FF6A1F; color: #0A0C24; text-align: center; font-weight: 700; padding: 16px; border-radius: 14px; text-decoration: none; font-size: 16px">출시 알림 받기</a>
+<span style="font-size: 13px; color: #9F9ED0; line-height: 1.6">곡 재생은 Spotify 앱에서 이뤄지며, Spotify 계정과 이용 조건은 별도예요. 부가세 포함 여부 등 결제 세부 조건은 출시 시 안내돼요.</span>
+</div>
+</section>
+
+<section id="festivals" style="max-width: 1240px; margin: 0 auto; padding: 0 24px 96px; display: flex; flex-direction: column; gap: 40px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<span style="font-family: 'Instrument Serif', serif; font-style: italic; font-size: 26px; color: #FFB27A">where to next?</span>
+<h2 style="margin: 0; font-weight: 900; font-size: clamp(32px, 3.8vw, 50px); letter-spacing: -0.045em">어디로 떠나시나요?</h2>
+</div>
+<a href="#top" style="font-weight: 700; text-decoration: none; font-size: 16px">전체 공연 보기 →</a>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 20px">
+
+<a href="#top" style="text-decoration: none; color: #EEEDFB; background: #12163C; border: 1px solid rgba(238,237,251,0.1); border-radius: 26px; overflow: hidden; display: flex; flex-direction: column">
+<div style="position: relative; aspect-ratio: 3 / 2; overflow: hidden">
+<img loading="lazy" decoding="async" src="assets/img/rock.jpg" alt="해 질 녘 야외 록 페스티벌 무대와 관객" style="width: 100%; height: 100%; object-fit: cover; display: block">
+<span style="position: absolute; left: 16px; top: 16px; background: rgba(10,12,36,0.9); color: #FF8A3D; font-family: 'Space Grotesk', sans-serif; font-size: 12px; letter-spacing: 0.08em; padding: 6px 12px; border-radius: 999px">ROCK FESTIVAL</span>
+</div>
+<div style="padding: 26px; display: flex; flex-direction: column; gap: 10px">
+<span style="font-weight: 900; font-size: 24px; letter-spacing: -0.03em">록 페스티벌</span>
+<span style="color: #B9B8E0; font-size: 15px; line-height: 1.7">사흘 내내 이어지는 라인업도 스테이지별로 한 번에 예습해요.</span>
+<span style="font-size: 15px; font-weight: 700; color: #FF8A3D; margin-top: 6px">예습 리스트 보기 →</span>
+</div>
+</a>
+
+<a href="#top" style="text-decoration: none; color: #EEEDFB; background: #12163C; border: 1px solid rgba(238,237,251,0.1); border-radius: 26px; overflow: hidden; display: flex; flex-direction: column">
+<div style="position: relative; aspect-ratio: 3 / 2; overflow: hidden">
+<img loading="lazy" decoding="async" src="assets/img/live.jpg" alt="인디고 조명이 비추는 실내 공연장" style="width: 100%; height: 100%; object-fit: cover; display: block">
+<span style="position: absolute; left: 16px; top: 16px; background: rgba(10,12,36,0.9); color: #FF8A3D; font-family: 'Space Grotesk', sans-serif; font-size: 12px; letter-spacing: 0.08em; padding: 6px 12px; border-radius: 999px">LIVE IN SEOUL</span>
+</div>
+<div style="padding: 26px; display: flex; flex-direction: column; gap: 10px">
+<span style="font-weight: 900; font-size: 24px; letter-spacing: -0.03em">내한 공연</span>
+<span style="color: #B9B8E0; font-size: 15px; line-height: 1.7">Bruno Mars, Maroon 5처럼 히트곡이 많은 아티스트도 최근 투어 순서 그대로 예습해요.</span>
+<span style="font-size: 15px; font-weight: 700; color: #FF8A3D; margin-top: 6px">예습 리스트 보기 →</span>
+</div>
+</a>
+
+<a href="#top" style="text-decoration: none; color: #EEEDFB; background: #12163C; border: 1px solid rgba(238,237,251,0.1); border-radius: 26px; overflow: hidden; display: flex; flex-direction: column">
+<div style="position: relative; aspect-ratio: 3 / 2; overflow: hidden">
+<img loading="lazy" decoding="async" src="assets/img/big.jpg" alt="꽃가루가 흩날리는 대형 페스티벌 무대" style="width: 100%; height: 100%; object-fit: cover; display: block">
+<span style="position: absolute; left: 16px; top: 16px; background: rgba(10,12,36,0.9); color: #FF8A3D; font-family: 'Space Grotesk', sans-serif; font-size: 12px; letter-spacing: 0.08em; padding: 6px 12px; border-radius: 999px">MUSIC FESTIVAL</span>
+</div>
+<div style="padding: 26px; display: flex; flex-direction: column; gap: 10px">
+<span style="font-weight: 900; font-size: 24px; letter-spacing: -0.03em">대형 뮤직 페스티벌</span>
+<span style="color: #B9B8E0; font-size: 15px; line-height: 1.7">장르가 섞인 라인업도 내 취향 순서대로 골라 담아요.</span>
+<span style="font-size: 15px; font-weight: 700; color: #FF8A3D; margin-top: 6px">예습 리스트 보기 →</span>
+</div>
+</a>
+
+</div>
+</section>
+
+<section id="faq" style="max-width: 1240px; margin: 0 auto; padding: 40px 24px 104px; display: flex; flex-wrap: wrap; gap: 48px">
+<div style="flex: 1 1 320px; display: flex; flex-direction: column; gap: 14px">
+<span style="font-family: 'Instrument Serif', serif; font-style: italic; font-size: 26px; color: #FFB27A">questions</span>
+<h2 style="margin: 0; font-weight: 900; font-size: clamp(32px, 3.8vw, 46px); line-height: 1.25; letter-spacing: -0.045em">자주 묻는 질문</h2>
+<p style="margin: 0; color: #B9B8E0; font-size: 16px; line-height: 1.8">더 궁금한 점은 [고객센터 이메일]로 문의해 주세요.</p>
+</div>
+<div style="flex: 2 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+
+<details style="background: #12163C; border: 1px solid rgba(238,237,251,0.1); border-radius: 18px; padding: 0 24px">
+<summary style="list-style: none; cursor: pointer; padding: 22px 0; font-weight: 700; font-size: 17px; display: flex; justify-content: space-between; gap: 16px; align-items: center; letter-spacing: -0.02em">언제 출시되나요?<span style="color: #FF6A1F; font-family: 'Space Grotesk', sans-serif; font-size: 22px" aria-hidden="true">+</span></summary>
+<p style="margin: 0; padding: 0 0 22px; color: #B9B8E0; line-height: 1.8; font-size: 15px">2026년 11월에 정식 출시돼요. 출시 알림을 신청하시면 가장 먼저 알려드릴게요.</p>
+</details>
+
+<details style="background: #12163C; border: 1px solid rgba(238,237,251,0.1); border-radius: 18px; padding: 0 24px">
+<summary style="list-style: none; cursor: pointer; padding: 22px 0; font-weight: 700; font-size: 17px; display: flex; justify-content: space-between; gap: 16px; align-items: center; letter-spacing: -0.02em">어떤 스트리밍 서비스와 연동되나요?<span style="color: #FF6A1F; font-family: 'Space Grotesk', sans-serif; font-size: 22px" aria-hidden="true">+</span></summary>
+<p style="margin: 0; padding: 0 0 22px; color: #B9B8E0; line-height: 1.8; font-size: 15px">출시 시점에는 Spotify를 지원해요. 예습·복습 플레이리스트가 내 Spotify 계정에 자동으로 저장되고, 곡 재생은 Spotify 앱에서 이뤄져요.</p>
+</details>
+
+<details style="background: #12163C; border: 1px solid rgba(238,237,251,0.1); border-radius: 18px; padding: 0 24px">
+<summary style="list-style: none; cursor: pointer; padding: 22px 0; font-weight: 700; font-size: 17px; display: flex; justify-content: space-between; gap: 16px; align-items: center; letter-spacing: -0.02em">요금은 얼마인가요?<span style="color: #FF6A1F; font-family: 'Space Grotesk', sans-serif; font-size: 22px" aria-hidden="true">+</span></summary>
+<p style="margin: 0; padding: 0 0 22px; color: #B9B8E0; line-height: 1.8; font-size: 15px">셋리뷰 멤버십은 월 12,000원이에요. 등록하는 공연 수와 관계없이 모든 기능을 쓸 수 있고, 언제든 해지할 수 있어요.</p>
+</details>
+
+<details style="background: #12163C; border: 1px solid rgba(238,237,251,0.1); border-radius: 18px; padding: 0 24px">
+<summary style="list-style: none; cursor: pointer; padding: 22px 0; font-weight: 700; font-size: 17px; display: flex; justify-content: space-between; gap: 16px; align-items: center; letter-spacing: -0.02em">예상 셋리스트는 어떻게 만들어지나요?<span style="color: #FF6A1F; font-family: 'Space Grotesk', sans-serif; font-size: 22px" aria-hidden="true">+</span></summary>
+<p style="margin: 0; padding: 0 0 22px; color: #B9B8E0; line-height: 1.8; font-size: 15px">아티스트의 최근 투어에서 실제로 연주된 곡과 순서를 바탕으로 예측해요. 확정 셋리스트가 공개되거나 공연이 시작되면 실제 순서로 자동 업데이트돼요.</p>
+</details>
+
+<details style="background: #12163C; border: 1px solid rgba(238,237,251,0.1); border-radius: 18px; padding: 0 24px">
+<summary style="list-style: none; cursor: pointer; padding: 22px 0; font-weight: 700; font-size: 17px; display: flex; justify-content: space-between; gap: 16px; align-items: center; letter-spacing: -0.02em">떼창 지수는 어떤 기준으로 매겨지나요?<span style="color: #FF6A1F; font-family: 'Space Grotesk', sans-serif; font-size: 22px" aria-hidden="true">+</span></summary>
+<p style="margin: 0; padding: 0 0 22px; color: #B9B8E0; line-height: 1.8; font-size: 15px">현장 합창 감지(40%), 투어 기록(25%), 셋리뷰 사용자의 떼창 태그(25%), 곡 구조(10%)를 합쳐 0~100점으로 매겨요. 70점 이상은 떼창 포인트, 90점 이상은 필수 떼창으로 표시돼요.</p>
+</details>
+
+<details style="background: #12163C; border: 1px solid rgba(238,237,251,0.1); border-radius: 18px; padding: 0 24px">
+<summary style="list-style: none; cursor: pointer; padding: 22px 0; font-weight: 700; font-size: 17px; display: flex; justify-content: space-between; gap: 16px; align-items: center; letter-spacing: -0.02em">공연 중 실시간 업데이트는 어떻게 받나요?<span style="color: #FF6A1F; font-family: 'Space Grotesk', sans-serif; font-size: 22px" aria-hidden="true">+</span></summary>
+<p style="margin: 0; padding: 0 0 22px; color: #B9B8E0; line-height: 1.8; font-size: 15px">내 공연으로 등록한 무대는 셋리스트가 곡 단위로 업데이트될 때마다 앱 알림으로 알려드려요.</p>
+</details>
+
+<details style="background: #12163C; border: 1px solid rgba(238,237,251,0.1); border-radius: 18px; padding: 0 24px">
+<summary style="list-style: none; cursor: pointer; padding: 22px 0; font-weight: 700; font-size: 17px; display: flex; justify-content: space-between; gap: 16px; align-items: center; letter-spacing: -0.02em">해지하면 플레이리스트는 어떻게 되나요?<span style="color: #FF6A1F; font-family: 'Space Grotesk', sans-serif; font-size: 22px" aria-hidden="true">+</span></summary>
+<p style="margin: 0; padding: 0 0 22px; color: #B9B8E0; line-height: 1.8; font-size: 15px">Spotify에 저장된 플레이리스트는 해지 후에도 그대로 남아요. 다만 자동 갱신과 실시간 싱크는 멈춰요.</p>
+</details>
+
+</div>
+</section>
+
+<section id="download" style="max-width: 1240px; margin: 0 auto; padding: 0 24px 120px">
+<div style="position: relative; border-radius: 36px; overflow: hidden; border: 1px solid rgba(238,237,251,0.1)">
+<img loading="lazy" decoding="async" src="assets/img/rock.jpg" alt="" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover">
+<div style="position: absolute; inset: 0; background: linear-gradient(90deg, rgba(10,12,36,0.96) 0%, rgba(10,12,36,0.82) 50%, rgba(10,12,36,0.4) 100%)" aria-hidden="true"></div>
+<div style="position: relative; padding: clamp(36px, 7vw, 88px); display: flex; flex-direction: column; gap: 22px; max-width: 640px">
+<span style="font-family: 'Instrument Serif', serif; font-style: italic; font-size: 30px; color: #FFB27A">coming this november</span>
+<h2 style="margin: 0; font-weight: 900; font-size: clamp(34px, 4.4vw, 58px); line-height: 1.18; letter-spacing: -0.045em">이번 시즌, 모든 떼창에<br><span style="color: #FF6A1F">목소리를 보태세요.</span></h2>
+<p style="margin: 0; color: #DCDBF5; font-size: 17px; line-height: 1.75">2026년 11월 출시와 동시에 알려드릴게요.</p>
+<form style="display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end">
+<div style="flex: 1 1 260px; display: flex; flex-direction: column; gap: 8px">
+<label for="notify-email" style="font-size: 14px; font-weight: 700">이메일</label>
+<input id="notify-email" type="email" placeholder="you@example.com" style="font-family: inherit; font-size: 16px; padding: 15px 16px; border: 1px solid rgba(238,237,251,0.3); border-radius: 14px; background: rgba(10,12,36,0.7); color: #EEEDFB; min-height: 52px; box-sizing: border-box">
+</div>
+<button type="button" style="background: #FF6A1F; color: #0A0C24; border: 0; border-radius: 14px; padding: 0 26px; font-family: inherit; font-weight: 700; font-size: 16px; cursor: pointer; min-height: 52px">출시 알림 받기</button>
+</form>
+<label style="display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: #B9B8E0; line-height: 1.6"><input type="checkbox" style="width: 18px; height: 18px; margin: 2px 0 0; accent-color: #FF6A1F; flex: none">출시 알림 발송을 위한 이메일 수집·이용에 동의해요 (필수)</label>
+</div>
+</div>
+</section>
+
+<footer style="border-top: 1px solid rgba(238,237,251,0.08); background: #070818">
+<div style="max-width: 1240px; margin: 0 auto; padding: 56px 24px 40px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 40px">
+<div style="flex: 1 1 280px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: center; gap: 10px">
+<svg width="30" height="30" viewBox="0 0 34 34" aria-hidden="true"><rect width="34" height="34" rx="10" fill="#FF6A1F"></rect><path d="M7 20v-6M12 24V10M17 22v-8M22 26V8M27 19v-4" stroke="#0A0C24" stroke-width="2.6" stroke-linecap="round"></path></svg>
+<span style="font-weight: 900; font-size: 20px; letter-spacing: -0.04em">셋리뷰</span>
+</div>
+<p style="margin: 0; color: #B9B8E0; font-size: 14px; line-height: 1.75; max-width: 320px">셋리스트를 완벽하게 예습하고, 벅찬 여운을 영원히 복습하는 가장 스마트한 방법.</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 56px; font-size: 14px">
+<div style="display: flex; flex-direction: column; gap: 12px"><span style="font-weight: 700">서비스</span><a href="#how" style="color: #B9B8E0; text-decoration: none">이용 방법</a><a href="#chant" style="color: #B9B8E0; text-decoration: none">떼창 지수</a><a href="#pricing" style="color: #B9B8E0; text-decoration: none">요금</a></div>
+<div style="display: flex; flex-direction: column; gap: 12px"><span style="font-weight: 700">공연</span><a href="#festivals" style="color: #B9B8E0; text-decoration: none">록 페스티벌</a><a href="#festivals" style="color: #B9B8E0; text-decoration: none">내한 공연</a><a href="#festivals" style="color: #B9B8E0; text-decoration: none">뮤직 페스티벌</a></div>
+<div style="display: flex; flex-direction: column; gap: 12px"><span style="font-weight: 700">고객지원</span><a href="#faq" style="color: #B9B8E0; text-decoration: none">자주 묻는 질문</a><a href="#faq" style="color: #B9B8E0; text-decoration: none">이용약관</a><a href="#faq" style="color: #B9B8E0; text-decoration: none">개인정보처리방침</a></div>
+</div>
+</div>
+<div style="max-width: 1240px; margin: 0 auto; padding: 24px; border-top: 1px solid rgba(238,237,251,0.08); display: flex; flex-direction: column; gap: 12px; font-size: 13px; color: #9F9ED0">
+<span>[상호] · 대표 [이름] · 사업자등록번호 [번호] · 통신판매업 신고 [번호] · [주소]</span>
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px">
+<span>© 2026 셋리뷰 SetReview · Spotify는 Spotify AB의 상표예요. 아티스트명·곡명·앨범 아트는 시안용 예시이며, 앨범 아트의 저작권은 각 아티스트와 음반사에 있어요.</span>
+<span style="font-family: 'Space Grotesk', sans-serif">#페스티벌예습 #셋리스트플레이리스트 #내한공연준비 #떼창포인트 #음악덕후필수앱</span>
+</div>
+</div>
+</footer>
+
+<div class="sr-bgm-pill" role="region" aria-label="배경 음악 플레이어" style="position: fixed; right: 20px; bottom: 20px; z-index: 30; display: flex; align-items: center; gap: 12px; background: rgba(13,16,46,0.95); border: 1px solid rgba(238,237,251,0.2); border-radius: 999px; padding: 8px 18px 8px 8px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); max-width: calc(100% - 40px); box-sizing: border-box">
+<button type="button" data-action="toggleBgm" aria-pressed="false" aria-label="배경 음악 켜기" style="width: 48px; height: 48px; flex: none; border-radius: 50%; border: 0; background: #FF6A1F; cursor: pointer; display: flex; align-items: center; justify-content: center">
+<span data-show="bgmPlaying" hidden>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="#0A0C24" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect></svg>
+</span>
+<span data-show="bgmPaused">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="#0A0C24" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"></path></svg>
+</span>
+</button>
+<div class="sr-bgm-label" style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+<span style="font-size: 13px; font-weight: 700; white-space: nowrap">Night Stage Loop</span>
+<span style="font-size: 11px; color: #B9B8E0; white-space: nowrap">셋리뷰 오리지널 BGM · <span data-bind="bgmState">OFF</span></span>
+</div>
+<span class="eq-off" style="display: flex; align-items: flex-end; gap: 3px; height: 18px; color: #FF6A1F" aria-hidden="true"><span style="width: 3px; height: 18px; background: currentColor; border-radius: 1px"></span><span style="width: 3px; height: 18px; background: currentColor; border-radius: 1px"></span><span style="width: 3px; height: 18px; background: currentColor; border-radius: 1px"></span><span style="width: 3px; height: 18px; background: currentColor; border-radius: 1px"></span></span>
+</div>
+
+</div>
+
+<audio id="sr-bgm" src="assets/audio/setreview-night-stage-loop.mp3" loop preload="none"></audio>
+<script>
+(function () {
+  var audio = document.getElementById('sr-bgm');
+  audio.volume = 0.4;
+  var bgm = false, menu = false;
+  function show(key, on) {
+    document.querySelectorAll('[data-show="' + key + '"]').forEach(function (el) { el.hidden = !on; });
+  }
+  function renderBgm() {
+    show('bgmPlaying', bgm); show('bgmPaused', !bgm);
+    document.querySelectorAll('[data-bind="bgmState"]').forEach(function (el) { el.textContent = bgm ? 'ON' : 'OFF'; });
+    document.querySelectorAll('[data-action="toggleBgm"]').forEach(function (el) {
+      el.setAttribute('aria-pressed', bgm ? 'true' : 'false');
+      if (el.hasAttribute('aria-label')) el.setAttribute('aria-label', bgm ? '배경 음악 끄기' : '배경 음악 켜기');
+    });
+    document.querySelectorAll('[data-bgm-btn]').forEach(function (el) {
+      el.style.background = bgm ? '#FF6A1F' : 'rgba(10,12,36,0.5)';
+      el.style.color = bgm ? '#0A0C24' : '#EEEDFB';
+    });
+    document.querySelectorAll('.eq-on, .eq-off').forEach(function (el) {
+      el.classList.toggle('eq-on', bgm); el.classList.toggle('eq-off', !bgm);
+    });
+  }
+  function renderMenu() {
+    show('menuOpen', menu); show('menuClosed', !menu);
+    document.querySelectorAll('[data-action="toggleMenu"]').forEach(function (el) {
+      el.setAttribute('aria-expanded', menu ? 'true' : 'false');
+      el.setAttribute('aria-label', menu ? '메뉴 닫기' : '메뉴 열기');
+    });
+  }
+  var actions = {
+    toggleBgm: function () {
+      if (bgm) { audio.pause(); bgm = false; renderBgm(); return; }
+      var p = audio.play();
+      if (p && p.then) { p.then(function () { bgm = true; renderBgm(); }).catch(function () { bgm = false; renderBgm(); }); }
+      else { bgm = true; renderBgm(); }
+    },
+    toggleMenu: function () { menu = !menu; renderMenu(); },
+    closeMenu: function () { menu = false; renderMenu(); }
+  };
+  document.addEventListener('click', function (e) {
+    var el = e.target.closest('[data-action]');
+    if (el && actions[el.getAttribute('data-action')]) actions[el.getAttribute('data-action')]();
+  });
+  // forms are demo-only
+  document.querySelectorAll('form').forEach(function (f) { f.addEventListener('submit', function (e) { e.preventDefault(); }); });
+})();
+</script>
+</body>
+</html>
