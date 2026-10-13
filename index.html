@@ -88,7 +88,7 @@ img{max-width:100%}
 <span class="eq-off" style="display: flex; align-items: flex-end; gap: 2px; height: 14px" aria-hidden="true"><span style="width: 3px; height: 14px; background: currentColor; border-radius: 1px"></span><span style="width: 3px; height: 14px; background: currentColor; border-radius: 1px"></span><span style="width: 3px; height: 14px; background: currentColor; border-radius: 1px"></span><span style="width: 3px; height: 14px; background: currentColor; border-radius: 1px"></span></span>
 BGM <span data-bind="bgmState">OFF</span>
 </button>
-<a class="sr-cta-top" href="#download" style="background: #FF6A1F; color: #0A0C24; font-weight: 700; padding: 12px 22px; border-radius: 999px; text-decoration: none; font-size: 15px">출시 알림 받기</a>
+<a class="sr-cta-top" href="/app/" style="background: #FF6A1F; color: #0A0C24; font-weight: 700; padding: 12px 22px; border-radius: 999px; text-decoration: none; font-size: 15px">웹앱 시작하기</a>
 <button class="sr-menu-btn" type="button" data-action="toggleMenu" aria-expanded="false" aria-controls="sr-mobile-menu" aria-label="메뉴 열기" style="width: 48px; height: 48px; border-radius: 14px; border: 1px solid rgba(238,237,251,0.3); background: rgba(10,12,36,0.6); cursor: pointer; align-items: center; justify-content: center">
 <span data-show="menuOpen" hidden>
 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EEEDFB" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>
@@ -126,10 +126,10 @@ BGM <span data-bind="bgmState">OFF</span>
 <span style="font-family: 'Instrument Serif', serif; font-style: italic; font-size: 30px; color: #FFB27A; line-height: 1">tonight, every song is yours.</span>
 <h1 style="margin: 0; font-weight: 900; font-size: clamp(36px, 6vw, 86px); line-height: 1.12; letter-spacing: -0.045em">모르는 노래 없이,<br><span style="color: #FF6A1F">떼창 타이밍</span>까지<br>완벽하게.</h1>
 <p style="margin: 0; font-size: 19px; line-height: 1.75; color: #DCDBF5; max-width: 540px">셋리스트를 완벽하게 예습하고, 벅찬 여운을 영원히 복습하는 가장 스마트한 방법. 내가 갈 공연의 예상 셋리스트를 순서 그대로 Spotify 플레이리스트에 담아 드려요.</p>
-<form style="display: flex; flex-wrap: wrap; gap: 10px; background: rgba(20,24,64,0.88); border: 1px solid rgba(238,237,251,0.18); border-radius: 18px; padding: 10px; max-width: 600px">
+<form id="hero-search-form" role="search" style="display: flex; flex-wrap: wrap; gap: 10px; background: rgba(20,24,64,0.88); border: 1px solid rgba(238,237,251,0.18); border-radius: 18px; padding: 10px; max-width: 600px">
 <label for="fest-search" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">공연 또는 아티스트 검색</label>
 <input id="fest-search" type="search" placeholder="공연·아티스트 검색 · 예: Bruno Mars, Maroon 5" style="flex: 1 1 260px; min-width: 0; background: transparent; border: 0; color: #EEEDFB; font-size: 16px; padding: 14px 12px; font-family: inherit; outline: none">
-<button type="button" style="background: #FF6A1F; color: #0A0C24; border: 0; border-radius: 12px; padding: 14px 24px; font-weight: 700; font-size: 16px; font-family: inherit; cursor: pointer; min-height: 48px">예습 리스트 만들기</button>
+<button type="submit" style="background: #FF6A1F; color: #0A0C24; border: 0; border-radius: 12px; padding: 14px 24px; font-weight: 700; font-size: 16px; font-family: inherit; cursor: pointer; min-height: 48px">예습 리스트 만들기</button>
 </form>
 <div style="display: flex; flex-wrap: wrap; gap: 18px; font-size: 14px; color: #B9B8E0">
 <span style="display: flex; align-items: center; gap: 8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF8A3D" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Spotify 플레이리스트 연동</span>
@@ -986,14 +986,14 @@ BGM <span data-bind="bgmState">OFF</span>
 <span style="font-family: 'Instrument Serif', serif; font-style: italic; font-size: 30px; color: #FFB27A">coming this november</span>
 <h2 style="margin: 0; font-weight: 900; font-size: clamp(34px, 4.4vw, 58px); line-height: 1.18; letter-spacing: -0.045em">이번 시즌, 모든 떼창에<br><span style="color: #FF6A1F">목소리를 보태세요.</span></h2>
 <p style="margin: 0; color: #DCDBF5; font-size: 17px; line-height: 1.75">2026년 11월 출시와 동시에 알려드릴게요.</p>
-<form style="display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end">
+<form id="notify-form" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end">
 <div style="flex: 1 1 260px; display: flex; flex-direction: column; gap: 8px">
 <label for="notify-email" style="font-size: 14px; font-weight: 700">이메일</label>
-<input id="notify-email" type="email" placeholder="you@example.com" style="font-family: inherit; font-size: 16px; padding: 15px 16px; border: 1px solid rgba(238,237,251,0.3); border-radius: 14px; background: rgba(10,12,36,0.7); color: #EEEDFB; min-height: 52px; box-sizing: border-box">
+<input id="notify-email" name="email" type="email" required autocomplete="email" placeholder="you@example.com" style="font-family: inherit; font-size: 16px; padding: 15px 16px; border: 1px solid rgba(238,237,251,0.3); border-radius: 14px; background: rgba(10,12,36,0.7); color: #EEEDFB; min-height: 52px; box-sizing: border-box">
 </div>
-<button type="button" style="background: #FF6A1F; color: #0A0C24; border: 0; border-radius: 14px; padding: 0 26px; font-family: inherit; font-weight: 700; font-size: 16px; cursor: pointer; min-height: 52px">출시 알림 받기</button>
+<button type="submit" style="background: #FF6A1F; color: #0A0C24; border: 0; border-radius: 14px; padding: 0 26px; font-family: inherit; font-weight: 700; font-size: 16px; cursor: pointer; min-height: 52px">출시 알림 받기</button>
 </form>
-<label style="display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: #B9B8E0; line-height: 1.6"><input type="checkbox" style="width: 18px; height: 18px; margin: 2px 0 0; accent-color: #FF6A1F; flex: none">출시 알림 발송을 위한 이메일 수집·이용에 동의해요 (필수)</label>
+<label style="display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: #B9B8E0; line-height: 1.6"><input id="notify-consent" type="checkbox" style="width: 18px; height: 18px; margin: 2px 0 0; accent-color: #FF6A1F; flex: none">출시 알림 발송을 위한 이메일 수집·이용에 동의해요 (필수)</label>
 </div>
 </div>
 </section>
@@ -1089,5 +1089,8 @@ BGM <span data-bind="bgmState">OFF</span>
   document.querySelectorAll('form').forEach(function (f) { f.addEventListener('submit', function (e) { e.preventDefault(); }); });
 })();
 </script>
+<p id="notify-result" role="status" aria-live="polite" style="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);margin:0;padding:12px 18px;border-radius:14px;background:#EEEDFB;color:#0A0C24;font-weight:700;font-family:'Noto Sans KR',sans-serif;box-shadow:0 20px 40px rgba(0,0,0,.4);z-index:50;display:none;max-width:calc(100% - 32px);text-align:center"></p>
+<script src="/app/config.js"></script>
+<script type="module" src="/app/js/landing.js"></script>
 </body>
 </html>
