@@ -1,0 +1,116 @@
+// 데이터베이스 행(row)을 화면에서 쓰기 좋은 모양으로 바꿔요.
+// 데모 모드와 Supabase 모드가 모두 이 함수들을 써서, 화면 코드는 백엔드를 신경 쓰지 않아요.
+
+export function shapeSong(s, segs = []) {
+  if (!s) return null;
+  return {
+    id: s.id,
+    artistId: s.artist_id,
+    title: s.title,
+    album: s.album || '',
+    albumArtUrl: s.album_art_url || '',
+    durationSec: s.duration_sec || null,
+    spotifyId: s.spotify_id || null,
+    segments: segs
+      .map((g) => ({ id: g.id, kind: g.kind, label: g.label || '', startSec: g.start_sec, endSec: g.end_sec, score: g.score }))
+      .sort((a, b) => a.startSec - b.startSec),
+  };
+}
+
+// 가장 높은 떼창 지수
+export function chantScore(song) {
+  if (!song) return null;
+  const scores = song.segments.filter((g) => g.kind === 'chant' && g.score != null).map((g) => g.score);
+  return scores.length ? Math.max(...scores) : null;
+}
+
+export function eventStatus(ev, perfs, now = Date.now()) {
+  if (perfs.some((p) => p.status === 'live')) return 'live';
+  const start = new Date(ev.starts_at).getTime();
+  const end = new Date(ev.ends_at).getTime();
+  if (now > end || (perfs.length && perfs.every((p) => p.status === 'ended'))) return 'ended';
+  if (now >= start) return 'live';
+  return 'upcoming';
+}
+
+export function shapeEventSummary(ev, perfs, artistsById, now = Date.now()) {
+  const sorted = [...perfs].sort((a, b) => a.sort - b.sort);
+  return {
+    id: ev.id,
+    slug: ev.slug,
+    title: ev.title,
+    kind: ev.kind,
+    venue: ev.venue || '',
+    city: ev.city || '',
+    startsAt: ev.starts_at,
+    endsAt: ev.ends_at,
+    coverUrl: ev.cover_url || '',
+    description: ev.description || '',
+    published: ev.published !== false,
+    status: eventStatus(ev, perfs, now),
+    artists: sorted.map((p) => artistsById[p.artist_id]?.name).filter(Boolean),
+  };
+}
+
+function shapeItem(it, songsById, segsBySong) {
+  const song = it.song_id && songsById[it.song_id] ? shapeSong(songsById[it.song_id], segsBySong[it.song_id] || []) : null;
+  return {
+    id: it.id,
+    position: it.position,
+    title: it.title || song?.title || '',
+    isEncore: !!it.is_encore,
+    note: it.note || '',
+    playedAt: it.played_at || null,
+    song,
+  };
+}
+
+export function shapeEventDetail(ev, perfs, artistsById, items, songsById, segsBySong, now = Date.now()) {
+  const summary = shapeEventSummary(ev, perfs, artistsById, now);
+  const performances = [...perfs]
+    .sort((a, b) => a.sort - b.sort)
+    .map((p) => {
+      const mine = items.filter((it) => it.performance_id === p.id);
+      const byPos = (a, b) => a.position - b.position || String(a.played_at || '').localeCompare(String(b.played_at || ''));
+      return {
+        id: p.id,
+        stage: p.stage || '',
+        startsAt: p.starts_at,
+        endsAt: p.ends_at,
+        status: p.status,
+        sort: p.sort,
+        artist: { id: p.artist_id, name: artistsById[p.artist_id]?.name || '' },
+        predicted: mine.filter((it) => it.kind === 'predicted').sort(byPos).map((it) => shapeItem(it, songsById, segsBySong)),
+        actual: mine.filter((it) => it.kind === 'actual').sort(byPos).map((it) => shapeItem(it, songsById, segsBySong)),
+      };
+    });
+  return { ...summary, performances };
+}
+
+export function shapeSession(profile, extra = {}) {
+  if (!profile) return null;
+  return {
+    id: profile.id,
+    nickname: profile.nickname || '덕후',
+    role: profile.role || 'user',
+    isAdmin: profile.role === 'admin',
+    membershipUntil: profile.membership_until || null,
+    email: extra.email || '',
+    provider: extra.provider || '',
+  };
+}
+
+export function isMemberActive(session, now = Date.now()) {
+  return !!(session && session.membershipUntil && new Date(session.membershipUntil).getTime() > now);
+}
+
+export function canPremium(session, settings) {
+  return !!(settings?.freeBeta || session?.isAdmin || isMemberActive(session));
+}
+
+export const indexBy = (arr, key = 'id') => Object.fromEntries(arr.map((x) => [x[key], x]));
+export function groupSegments(segs) {
+  const out = {};
+  for (const g of segs) (out[g.song_id] ||= []).push(g);
+  return out;
+}

@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spotify 연결 중 · 셋리뷰</title>
+<meta name="robots" content="noindex">
+<style>body{margin:0;background:#0A0C24;color:#EEEDFB;font:16px/1.6 system-ui,sans-serif;display:grid;place-items:center;min-height:100vh}</style>
+<script src="/app/config.js"></script>
+</head>
+<body>
+<p role="status">Spotify 계정을 연결하고 있어요…</p>
+<script type="module">
+  import { handleCallback } from '/app/js/spotify.js';
+  handleCallback().catch(() => location.replace('/app/'));
+</script>
+</body>
+</html>

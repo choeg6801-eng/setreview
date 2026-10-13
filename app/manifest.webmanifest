@@ -1,0 +1,14 @@
+{
+  "name": "셋리뷰 SetReview",
+  "short_name": "셋리뷰",
+  "description": "셋리스트를 예습하고, 떼창 타이밍을 익히고, 그날을 복습하세요.",
+  "start_url": "/app/",
+  "scope": "/app/",
+  "display": "standalone",
+  "background_color": "#0A0C24",
+  "theme_color": "#0A0C24",
+  "lang": "ko",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
