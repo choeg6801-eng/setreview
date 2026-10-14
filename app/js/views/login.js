@@ -11,8 +11,18 @@ const PROVIDERS = {
 };
 
 const EMAIL_KEY = 'sr-login-email';
-const getPending = () => { try { return sessionStorage.getItem(EMAIL_KEY) || ''; } catch { return ''; } };
-const setPending = (v) => { try { v ? sessionStorage.setItem(EMAIL_KEY, v) : sessionStorage.removeItem(EMAIL_KEY); } catch { /* 저장 불가 */ } };
+// 코드를 기다리는 이메일 주소는 30분 동안 기억해요.
+// 휴대폰에서 메일 앱을 오가는 사이 브라우저가 탭을 새로 불러와도 코드 입력 칸이 그대로 남아 있게요.
+const PENDING_MS = 30 * 60 * 1000;
+const getPending = () => {
+  try {
+    const v = JSON.parse(localStorage.getItem(EMAIL_KEY) || 'null');
+    return v && Date.now() - v.at < PENDING_MS ? v.email : '';
+  } catch { return ''; }
+};
+const setPending = (email) => {
+  try { email ? localStorage.setItem(EMAIL_KEY, JSON.stringify({ email, at: Date.now() })) : localStorage.removeItem(EMAIL_KEY); } catch { /* 저장 불가 */ }
+};
 
 export default async function login(ctx) {
   const { api, state } = ctx;
@@ -37,6 +47,7 @@ export default async function login(ctx) {
   const useEmail = config.loginProviders.includes('email');
   const oauth = config.loginProviders.filter((p) => PROVIDERS[p]);
   const pending = useEmail ? getPending() : '';
+  const notice = api.takeAuthNotice?.() || '';
   const remember = () => { if (!sessionStorage.getItem('sr-return')) sessionStorage.setItem('sr-return', '#/me'); };
 
   return {
@@ -52,8 +63,9 @@ export default async function login(ctx) {
           <button type="button" class="btn btn-outline btn-block" data-action="demo" data-kind="admin">운영자 데모 계정으로 시작</button>
           <p class="faint small">운영자 계정으로는 공연 등록, 라이브 셋리스트 진행, 제보 승인을 해 볼 수 있어요.</p>
         ` : html`
+          ${notice ? html`<div class="notice notice-warn small" role="alert">${notice}</div>` : ''}
           ${useEmail ? (pending ? html`
-            <div class="notice small" role="status"><strong>${pending}</strong>(으)로 로그인 메일을 보냈어요. 메일의 <strong>로그인 버튼</strong>을 누르거나, 메일에 있는 <strong>6자리 코드</strong>를 아래에 넣어 주세요.</div>
+            <div class="notice small" role="status"><strong>${pending}</strong>(으)로 로그인 메일을 보냈어요. 메일에 있는 <strong>6자리 코드</strong>를 아래에 넣어 주세요. 휴대폰에서는 메일 앱이 링크를 다른 브라우저로 열 수 있어서 코드가 더 확실해요.</div>
             <form class="auth-form" data-form="code" novalidate>
               <div class="field">
                 <label for="login-code">인증 코드</label>
@@ -84,9 +96,15 @@ export default async function login(ctx) {
         const email = String(fd.get('email') || '').trim().toLowerCase();
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new UserError('이메일 주소를 확인해 주세요.');
         remember();
-        await api.sendEmailLogin(email);
+        try {
+          await api.sendEmailLogin(email);
+          toast('로그인 메일을 보냈어요.', 'ok');
+        } catch (e) {
+          // 이미 보낸 메일이 있으면 그 메일의 코드로 로그인하면 돼요
+          if (!/방금 메일을 보냈어요/.test(e?.message || '')) throw e;
+          toast(e.message);
+        }
         setPending(email);
-        toast('로그인 메일을 보냈어요.', 'ok');
         ctx.rerender();
         setTimeout(() => document.getElementById('login-code')?.focus(), 50);
       },

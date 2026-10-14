@@ -9,6 +9,9 @@ const SUPABASE_JS = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+
 let sb = null;
 let authSession = null;
 let profile = null;
+let authNotice = '';   // 로그인 링크가 이어지지 않았을 때 로그인 화면에 보여 줄 안내
+let lastOtp = { email: '', at: 0 };
+let otpInFlight = null;
 const authListeners = new Set();
 
 function toUserError(error) {
@@ -25,7 +28,8 @@ function toUserError(error) {
 function emailAuthError(error) {
   const msg = `${error?.code || ''} ${error?.message || ''}`;
   if (error?.status === 429 || /rate limit|over_email_send_rate|security purposes/i.test(msg)) {
-    return new UserError('메일을 너무 자주 보냈어요. 잠시 후 다시 시도해 주세요.');
+    const sec = msg.match(/after (\d+) seconds?/i)?.[1];
+    return new UserError(sec ? `방금 메일을 보냈어요. ${sec}초 뒤에 다시 보낼 수 있어요. 받은 메일의 6자리 코드를 넣어 주세요.` : '메일을 너무 자주 보냈어요. 잠시 후 다시 시도해 주세요.');
   }
   if (/otp_expired|expired|invalid/i.test(msg)) return new UserError('코드가 맞지 않거나 만료됐어요. 메일을 다시 받아 주세요.');
   if (/email_address_invalid|invalid.*email/i.test(msg)) return new UserError('이메일 주소를 확인해 주세요.');
@@ -33,6 +37,14 @@ function emailAuthError(error) {
     return new UserError('아직 이 주소로는 메일을 보낼 수 없어요. 운영자에게 문의해 주세요.');
   }
   return toUserError(error);
+}
+async function sendOtp(email) {
+  const { error } = await sb.auth.signInWithOtp({
+    email,
+    options: { emailRedirectTo: `${location.origin}/app/`, shouldCreateUser: true },
+  });
+  if (error) throw emailAuthError(error);
+  lastOtp = { email, at: Date.now() };
 }
 function check({ data, error }) {
   if (error) throw toUserError(error);
@@ -65,12 +77,26 @@ export const supabaseBackend = {
   mode: 'supabase',
 
   async init() {
+    // 메일의 로그인 링크로 돌아왔는지, 링크에 오류가 붙어 왔는지 미리 봐 둬요
+    const q = new URLSearchParams(location.search);
+    const hq = new URLSearchParams(location.hash.replace(/^#\/?/, '').split('?').pop());
+    const hadCode = q.has('code');
+    const linkError = q.get('error_code') || hq.get('error_code') || q.get('error') || hq.get('error') || '';
+    if (/^#\/?error=/.test(location.hash)) history.replaceState(null, '', `${location.pathname}${location.search}#/login`);
+
     const { createClient } = await import(/* @vite-ignore */ SUPABASE_JS);
     sb = createClient(config.supabaseUrl, config.supabaseAnonKey, {
       auth: { flowType: 'pkce', persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
     });
     const { data } = await sb.auth.getSession();
     authSession = data.session;
+    if (!authSession && (hadCode || linkError)) {
+      // 휴대폰에서 흔한 경우: 메일 앱이 링크를 자기 안의 브라우저로 열어서, 로그인을 요청한 브라우저와 달라 이어지지 않아요
+      authNotice = /expired|otp_expired/i.test(linkError || '')
+        ? '로그인 링크가 만료됐거나 이미 사용됐어요. 메일을 다시 받아 6자리 코드로 로그인해 주세요.'
+        : '로그인 링크가 메일 앱 안의 브라우저에서 열려서 로그인이 이어지지 않았어요. 처음 로그인 메일을 요청한 브라우저(사파리·크롬)로 돌아가서 메일의 6자리 코드를 넣어 주세요.';
+      if (!location.hash || location.hash === '#/') history.replaceState(null, '', `${location.pathname}${location.search}#/login`);
+    }
     await loadProfile();
     sb.auth.onAuthStateChange((_event, s) => {
       // 콜백 안에서 바로 Supabase 를 다시 부르면 멈출 수 있어서 다음 틱으로 넘겨요
@@ -96,12 +122,15 @@ export const supabaseBackend = {
     if (error) throw toUserError(error);
   },
   // 이메일 로그인: 로그인 링크(+ 6자리 코드)를 메일로 보내요. 처음이면 자동으로 가입돼요.
+  takeAuthNotice() { const m = authNotice; authNotice = ''; return m; },
   async sendEmailLogin(email) {
-    const { error } = await sb.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: `${location.origin}/app/`, shouldCreateUser: true },
-    });
-    if (error) throw emailAuthError(error);
+    // 휴대폰에서 버튼이 두 번 눌려도 메일은 한 번만 보내요 (두 번째 요청은 '잠시 후 다시' 오류가 나요)
+    if (otpInFlight?.email === email) return otpInFlight.p;
+    const wait = Math.ceil((60_000 - (Date.now() - lastOtp.at)) / 1000);
+    if (lastOtp.email === email && wait > 0) throw new UserError(`방금 메일을 보냈어요. ${wait}초 뒤에 다시 보낼 수 있어요. 받은 메일의 6자리 코드를 넣어 주세요.`);
+    const p = sendOtp(email);
+    otpInFlight = { email, p };
+    try { return await p; } finally { otpInFlight = null; }
   },
   async verifyEmailCode(email, token) {
     const { error } = await sb.auth.verifyOtp({ email, token, type: 'email' });
