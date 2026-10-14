@@ -114,12 +114,13 @@ export function songRow(item, o) {
   const open = o.open;
   const badges = [];
   if (o.premium && song) badges.push(chantBadge(song));
+  if (song?.originalArtist) badges.push(html`<span class="badge badge-cover" title="${song.originalArtist}의 곡을 부르는 무대예요">커버</span>`);
   if (item.isEncore) badges.push(html`<span class="badge badge-encore">앙코르</span>`);
   if (o.surprise) badges.push(html`<span class="badge badge-surprise">깜짝 곡</span>`);
   if (o.state === 'played') badges.push(html`<span class="badge badge-played">불렀어요</span>`);
   if (o.state === 'skipped') badges.push(html`<span class="badge badge-skipped">안 불렀어요</span>`);
   if (o.state === 'now') badges.push(html`<span class="badge badge-now"><span class="dot" aria-hidden="true"></span>지금</span>`);
-  const sub = [song?.originalArtist ? `원곡 ${song.originalArtist}` : '', song?.album, song?.durationSec ? mmss(song.durationSec) : '', o.time ? o.time : ''].filter(Boolean).join(' · ');
+  const sub = [song?.originalArtist ? `원곡: ${song.originalArtist}` : '', song?.album && song.album !== song.originalArtist ? song.album : '',song?.durationSec ? mmss(song.durationSec) : '', o.time ? o.time : ''].filter(Boolean).join(' · ');
 
   return html`<li class="song ${open ? 'open' : ''} ${o.state ? 'is-' + o.state : ''}">
     <div class="song-main">

@@ -151,6 +151,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .badge-must { background: var(--accent); color: var(--ink); }
 .badge-chant { background: var(--peach); color: var(--ink); }
 .badge-encore { background: var(--text); color: var(--ink); }
+.badge-cover { background: transparent; border: 1px solid var(--line); color: var(--muted, var(--text)); }
 .badge-surprise { background: transparent; border: 1px solid var(--peach); color: var(--peach); }
 .badge-played { background: rgba(123, 224, 168, 0.14); color: var(--ok); }
 .badge-skipped { background: rgba(238, 237, 251, 0.08); color: var(--faint); }

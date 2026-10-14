@@ -73,7 +73,9 @@ const isKoreanAct = (a: Artist) => HANGUL.test(a.name);
 async function resolveArtist(a: Artist, keys: string[]) {
   const names = [a.name, ...(a.aliases || []), a.name_ko].filter(Boolean) as string[];
   const latin = names.filter((n) => /[a-z]/i.test(n)).slice(0, 2);
-  const tries: [string, string][] = [...latin.map((n) => [n, 'US'] as [string, string]), [names[0], 'JP']];
+  // 일본 가수는 일본어 이름(浜野はるき 등)으로 일본 스토어에서도 찾아요
+  const jp = names.filter((n) => /[ぁ-んァ-ン一-龥]/.test(n)).slice(0, 2);
+  const tries: [string, string][] = [...latin.map((n) => [n, 'US'] as [string, string]), ...jp.map((n) => [n, 'JP'] as [string, string]), [names[0], 'JP']];
   if (isKoreanAct(a)) tries.unshift([a.name, 'US']);
   for (const [term, country] of tries) {
     const hits = await itunes('search', { term, entity: 'musicArtist', country, limit: '5' });
@@ -106,13 +108,20 @@ async function importArtist(a: Artist) {
 
   // 한국 스토어 → 미국 스토어 순서 (한국 목록의 한글 제목을 우선)
   const all: (Hit & { store: string })[] = [];
-  for (const c of ['KR', 'US']) {
+  // 일본어 이름이 있는 가수는 일본 스토어도 봐요 (한국·미국 스토어에 없는 곡이 많아요)
+  const isJp = [a.name, a.name_ko, ...(a.aliases || [])].some((n) => /[ぁ-んァ-ン]/.test(n || ''));
+  for (const c of isJp ? ['KR', 'JP', 'US'] : ['KR', 'US']) {
     const list = await itunes('lookup', { id: String(aid), entity: 'song', limit: '200', country: c });
     for (const h of list) if (h.wrapperType === 'track' && h.kind === 'song') all.push({ ...h, store: c });
   }
   // 같은 곡은 스토어가 달라도 트랙 번호가 같아요. 한국 스토어에서 이미 본 곡은 미국 스토어 쪽(영문 제목)을 버려요
-  const krIds = new Set(all.filter((h) => h.store === 'KR' && h.trackId).map((h) => h.trackId));
-  for (let i = all.length - 1; i >= 0; i--) if (all[i].store !== 'KR' && krIds.has(all[i].trackId)) all.splice(i, 1);
+  // (먼저 본 스토어 쪽만 남겨요: 한국 → 일본 → 미국)
+  const seenIds = new Set<number>();
+  for (let i = 0; i < all.length; i++) {
+    const id = all[i].trackId;
+    if (!id) continue;
+    if (seenIds.has(id)) { all.splice(i, 1); i--; } else seenIds.add(id);
+  }
 
   // 한국 가수인데 한국 스토어 결과가 한글 이름도, 한글 제목도 거의 없으면 동명이인으로 보고 건너뛰어요
   if (isKoreanAct(a)) {
@@ -139,7 +148,7 @@ async function importArtist(a: Artist) {
     if (!prev) { byKey.set(k, h); continue; }
     const better = rank(h) > rank(prev) || (rank(h) === rank(prev) && (h.releaseDate || '9') < (prev.releaseDate || '9'));
     // 한국 스토어 제목(한글)을 지켜요: 같은 곡이면 KR 쪽 제목 유지
-    if (better) byKey.set(k, { ...h, trackName: prev.store === 'KR' && h.store !== 'KR' ? prev.trackName : h.trackName, store: prev.store === 'KR' ? 'KR' : h.store });
+    if (better) byKey.set(k, { ...h, trackName: prev.store !== 'US' && h.store === 'US' ? prev.trackName : h.trackName, store: prev.store !== 'US' && h.store === 'US' ? prev.store : h.store });
   }
 
   // 이미 있는 곡
