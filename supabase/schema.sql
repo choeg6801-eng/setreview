@@ -779,3 +779,12 @@ as $$
 $$;
 revoke all on function public.songs_needing_art_v3(int, timestamptz) from public, anon, authenticated;
 grant execute on function public.songs_needing_art_v3(int, timestamptz) to service_role;
+
+-- 아티스트별 곡 목록 미리 쌓기 (catalog-import, 10분마다 아티스트 12명씩, 30일마다 다시 확인)
+alter table public.artists add column if not exists catalog_synced_at timestamptz;
+alter table public.artists add column if not exists catalog_song_count int;
+alter table public.songs add column if not exists apple_track_id bigint;
+-- 잘못 들어온 곡(다른 가수·MR·리믹스 등)은 지우지 않고 숨겨 둬요. 다시 기준을 통과하면 catalog-import 가 되살려요.
+alter table public.songs add column if not exists hidden boolean not null default false;
+create index if not exists songs_artist_idx on public.songs(artist_id);
+-- select cron.schedule('setreview-catalog-import', '5,15,25,35,45,55 * * * *', $$ select net.http_post(... '/functions/v1/catalog-import' ... x-sync-secret ...) $$);
