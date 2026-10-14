@@ -48,6 +48,12 @@ export function eventGenres(ev, idx) {
 }
 
 const eventText = (ev) => [ev.title, ev.lineup, ...(ev.artists || [])].map(norm).join('|');
+const eventWords = (ev) => [ev.title, ev.lineup, ...(ev.artists || [])].join(' ').toLowerCase().split(/[^0-9a-z가-힣ぁ-んァ-ン一-龥]+/u);
+// 짧은 이름(TS, IU, 테스 등)은 다른 단어 속에 섞여 잘못 걸리지 않게 '단어 그대로'일 때만 맞춰요 (서버의 name_key_hit 과 같아요)
+export const isShortKey = (k) => /^[0-9a-z]{1,4}$/.test(k) || k.length <= 2;
+export function eventHasKey(ev, k) {
+  return isShortKey(k) ? eventWords(ev).includes(k) : eventText(ev).includes(k);
+}
 
 // 내 기록에서 본 아티스트 · 장르
 export function seenFrom(records, events, idx) {
@@ -81,9 +87,8 @@ export function matchEvents(events, { favorites = [], genres = [], seen = [] }, 
   const out = [];
   for (const ev of events) {
     if (ev.status === 'ended' || ev.published === false) continue; // 운영자에게만 보이는 검토 전 초안은 빼요
-    const text = eventText(ev);
-    const fav = favorites.find((f) => keysFor(f, idx).some((k) => text.includes(k)));
-    const seenHit = !fav && seen.find((s) => keysFor(s, idx).some((k) => text.includes(k)));
+    const fav = favorites.find((f) => keysFor(f, idx).some((k) => eventHasKey(ev, k)));
+    const seenHit = !fav && seen.find((s) => keysFor(s, idx).some((k) => eventHasKey(ev, k)));
     const g = genres.length ? eventGenres(ev, idx).filter((x) => genres.includes(x)) : [];
     if (!fav && !seenHit && !g.length) continue;
     const reason = fav ? `♥ ${fav} 출연` : seenHit ? `본 적 있는 ${seenHit}` : `${g.join(' · ')} 취향`;
@@ -142,7 +147,7 @@ export function recommendArtists({ favorites = [], seen = [], genres = [], event
   const upcoming = events.filter((e) => e.status !== 'ended').sort((a, b) => a.startsAt.localeCompare(b.startsAt));
   const list = [...cands.values()].map((c) => {
     const keys = keysFor(c.name, idx);
-    const next = upcoming.find((e) => keys.some((k) => eventText(e).includes(k)));
+    const next = upcoming.find((e) => keys.some((k) => eventHasKey(e, k)));
     return { ...c, next: next || null, score: c.score + (next ? 1 : 0) };
   });
   return list.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name)).slice(0, limit);

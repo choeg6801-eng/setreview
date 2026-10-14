@@ -788,3 +788,73 @@ alter table public.songs add column if not exists apple_track_id bigint;
 alter table public.songs add column if not exists hidden boolean not null default false;
 create index if not exists songs_artist_idx on public.songs(artist_id);
 -- select cron.schedule('setreview-catalog-import', '5,15,25,35,45,55 * * * *', $$ select net.http_post(... '/functions/v1/catalog-import' ... x-sync-secret ...) $$);
+
+-- ============================================================
+-- 이름 맞추기: 짧은 이름(TS, IU, 테스 등)은 '단어 그대로'일 때만 (presents·kajiura 같은 단어 속 오매칭 방지)
+-- ============================================================
+create or replace function public.name_key_hit(p_txt text, p_words text[], p_key text)
+returns boolean language sql immutable set search_path = '' as $$
+  select case when p_key ~ '^[0-9a-z]{1,4}$' or char_length(p_key) <= 2
+              then p_key = any (p_words)
+              else strpos(p_txt, p_key) > 0 end;
+$$;
+
+create or replace function private.interested_users(p_user uuid default null)
+returns table (user_id uuid, event_id uuid, label text)
+language sql stable security definer set search_path = '' as $$
+  with names as (
+    select f.user_id, f.name as label, f.norm as key from public.favorite_artists f
+    where (p_user is null or f.user_id = p_user) and char_length(f.norm) >= 2
+    union
+    select f.user_id, f.name, public.norm_name(x)
+    from public.favorite_artists f
+    join public.artists a on public.norm_name(a.name) = f.norm or public.norm_name(a.name_ko) = f.norm
+                          or f.norm = any (select public.norm_name(y) from unnest(a.aliases) y)
+    cross join lateral unnest(array[a.name, a.name_ko] || a.aliases) x
+    where (p_user is null or f.user_id = p_user) and char_length(public.norm_name(x)) >= 2
+  ),
+  ev0 as (
+    select e.id, e.title, e.lineup,
+           coalesce((select string_agg(coalesce(a.name, '') || ' ' || coalesce(a.name_ko, ''), ' | ')
+                     from public.performances p join public.artists a on a.id = p.artist_id where p.event_id = e.id), '') as perf
+    from public.events e where e.published and e.ends_at > now()
+  ),
+  ev as (
+    select id,
+           public.norm_name(title) || '|' || public.norm_name(lineup) || '|' || public.norm_name(perf) as txt,
+           regexp_split_to_array(lower(coalesce(title, '') || ' ' || coalesce(lineup, '') || ' ' || perf), '[^0-9a-z가-힣ぁ-んァ-ン一-龥]+') as words
+    from ev0
+  )
+  select distinct on (names.user_id, ev.id) names.user_id, ev.id, names.label
+  from names join ev on public.name_key_hit(ev.txt, ev.words, names.key)
+  order by names.user_id, ev.id, names.label;
+$$;
+revoke all on function private.interested_users(uuid) from public;
+
+-- 잘못 만들어진 알림은 지우지 않고 숨겨요 (다시 맞으면 되살아나요)
+alter table public.notifications add column if not exists hidden boolean not null default false;
+alter policy "notifications read own" on public.notifications using (user_id = (select auth.uid()) and not hidden);
+
+create or replace function private.generate_notifications(p_user uuid default null)
+returns int language plpgsql security definer set search_path = '' as $$
+declare n1 int; n2 int;
+begin
+  insert into public.notifications (user_id, kind, event_id, reason)
+  select i.user_id, 'artist', i.event_id, i.label || ' 출연' from private.interested_users(p_user) i
+  on conflict (user_id, event_id, kind) do update set hidden = false, reason = excluded.reason, created_at = now()
+    where public.notifications.hidden;
+  get diagnostics n1 = row_count;
+  insert into public.notifications (user_id, kind, event_id, reason)
+  select distinct on (g.user_id, e.id) g.user_id, 'genre', e.id, g.genre || ' 공연'
+  from public.user_genres g
+  join public.events e on e.published and e.starts_at > now() and e.created_at > now() - interval '8 days'
+  where (p_user is null or g.user_id = p_user)
+    and not exists (select 1 from public.notifications n where n.user_id = g.user_id and n.event_id = e.id and n.kind = 'artist' and not n.hidden)
+    and (g.genre = any (e.genres) or exists (
+      select 1 from public.performances p join public.artists a on a.id = p.artist_id
+      where p.event_id = e.id and g.genre = any (a.genres)))
+  order by g.user_id, e.id, g.genre
+  on conflict (user_id, event_id, kind) do nothing;
+  get diagnostics n2 = row_count;
+  return n1 + n2;
+end $$;

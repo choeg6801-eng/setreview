@@ -5,7 +5,7 @@ import { fmtDate, fmtTime } from '../util.js';
 import { icon } from '../icons.js';
 import { navigate } from '../router.js';
 import { footer } from './footer.js';
-import { artistIndex, matchEvents, seenFrom, norm } from '../taste.js';
+import { artistIndex, matchEvents, seenFrom, norm, eventHasKey } from '../taste.js';
 
 const TABS = [
   { id: 'all', label: '전체' },
@@ -57,7 +57,8 @@ export default async function home(ctx) {
   const matches = (e) => {
     if (!q) return true;
     const hay = norm([e.title, e.venue, e.city, e.lineup, ...e.artists].join(' '));
-    return qKeys.some((k) => hay.includes(k)) || [e.title, e.venue, e.city].join(' ').toLowerCase().includes(q);
+    // 직접 친 검색어는 그대로 찾고, 아티스트 다른 이름으로 넓힌 짧은 이름(TS 등)은 단어 단위로만 맞춰요
+    return hay.includes(qKeys[0] || '\u0000') || qKeys.slice(1).some((k) => eventHasKey(e, k)) || [e.title, e.venue, e.city].join(' ').toLowerCase().includes(q);
   };
   const kindOk = (k) => (e) => (k === 'festival' ? e.kind === 'festival' : k === 'visit' ? e.isVisit : true);
   const searched = events.filter(matches);

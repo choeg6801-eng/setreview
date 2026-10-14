@@ -161,6 +161,7 @@ const TAB_VIEWS = {
             ${!sel ? html`<option value="">무대를 골라 주세요</option>` : ''}
             ${perfs.map((p) => html`<option value="${p.id}" ${sel?.id === p.id ? 'selected' : ''}>${p.status === 'live' ? '● ' : ''}${p.artist.name} — ${p.event.title} (${fmtDate(p.startsAt || p.event.startsAt)})</option>`)}
           </select>
+          <p class="faint small">공연 당일 운영자가 지금 부르는 곡을 실시간으로 표시하는 곳이에요. 어제부터 3일 뒤까지 열리는 공연 중 예상 셋리스트(출연 무대)가 준비된 무대만 보여요.</p>
         </div>
         ${perfs.length ? body : emptyState('오늘 전후로 진행할 무대가 없어요', '어제부터 3일 뒤까지의 공연 중 출연 아티스트가 등록된 무대가 여기에 나와요. 공연 탭에서 공연과 출연 아티스트를 등록해 주세요.', html`<a class="btn btn-primary" href="#/admin/events">공연 등록하기</a>`)}`,
       changes: {
