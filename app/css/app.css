@@ -587,3 +587,7 @@ body.is-loading::before { content: ""; position: fixed; top: 0; left: 0; height:
 .bgm-btn.is-on .bgm-eq { display: flex; }
 @keyframes bgm-eq { 0%, 100% { height: 3px; } 50% { height: 9px; } }
 @media (prefers-reduced-motion: reduce) { .bgm-btn .bgm-eq i { animation: none; height: 6px; } }
+
+/* 예상 셋리스트 근거 */
+.setlist-basis { display: flex; gap: 6px; align-items: flex-start; margin: 0; padding: 10px 16px; border-bottom: 1px solid var(--line, rgba(255,255,255,.08)); line-height: 1.5; }
+.setlist-basis svg { flex: none; margin-top: 3px; }

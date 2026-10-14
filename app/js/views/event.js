@@ -122,10 +122,11 @@ export default async function eventView(ctx) {
             <span><span class="seg-dot chant" aria-hidden="true"></span>떼창 구간</span>
           </span>` : html`<a class="small" href="#/membership">${icon('lock', 14)} 떼창 지수 보기</a>`}
         </div>
+        ${p.predicted.find((it) => it.note) ? html`<p class="setlist-basis small muted">${icon('info', 14)} 예상 근거 · ${p.predicted.find((it) => it.note).note}</p>` : ''}
         <ol class="songs">
           ${p.predicted.map((it, i) => songRow(it, rowOpts(it, i + 1, { state: predictedState(it) })))}
         </ol>
-      </div>` : (!hasActual ? html`<div class="card"><p class="muted">예상 셋리스트를 준비하고 있어요.</p></div>` : '')}
+      </div>` : (!hasActual ? html`<div class="card"><p class="muted">예상 셋리스트를 준비하고 있어요. 같은 투어의 최근 공연 곡을 바탕으로 만들고, <strong>내 공연에 담아 둔 공연은 몇 시간 안에 먼저</strong> 준비해 드려요.</p></div>` : '')}
     </section>`;
   }
 
