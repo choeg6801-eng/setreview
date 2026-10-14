@@ -3,6 +3,7 @@ import { html } from './util.js';
 import { state } from './state.js';
 import { isDemo } from './config.js';
 import { icon } from './icons.js';
+import { isPlaying, isAvailable, BGM_TITLE } from './bgm.js';
 
 const logo = html`<svg width="30" height="30" viewBox="0 0 34 34" aria-hidden="true"><rect width="34" height="34" rx="10" fill="#FF6A1F"></rect><path d="M7 20v-6M12 24V10M17 22v-8M22 26V8M27 19v-4" stroke="#0A0C24" stroke-width="2.6" stroke-linecap="round"></path></svg>`;
 
@@ -28,6 +29,7 @@ export function renderChrome(path) {
       </nav>
       <div class="topbar-right">
         <a class="btn btn-ghost btn-sm hide-sm" href="/">서비스 소개</a>
+        ${isAvailable() ? html`<button type="button" class="icon-btn bgm-btn ${isPlaying() ? 'is-on' : ''}" data-action="toggle-bgm" aria-pressed="${isPlaying() ? 'true' : 'false'}" aria-label="배경 음악 ${isPlaying() ? '끄기' : '켜기'} · ${BGM_TITLE}" title="배경 음악 · ${BGM_TITLE}">${icon('music', 20)}<span class="bgm-eq" aria-hidden="true"><i></i><i></i><i></i></span></button>` : ''}
         ${s ? html`<a class="icon-btn bell ${path === '/inbox' ? 'active' : ''}" href="#/inbox" aria-label="알림함${state.unread ? ` · 새 알림 ${state.unread}개` : ''}">${icon('bell', 20)}${state.unread ? html`<span class="bell-dot">${state.unread > 99 ? '99+' : state.unread}</span>` : ''}</a>` : ''}
         ${s
           ? html`<a class="user-chip" href="#/me" aria-label="내 정보">${icon('user', 16)}<span>${s.nickname}</span></a>`

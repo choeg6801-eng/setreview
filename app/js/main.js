@@ -4,6 +4,7 @@ import { route, parseHash, match, navigate } from './router.js';
 import { html, toast, errorMessage } from './util.js';
 import { isDemo } from './config.js';
 import { renderChrome } from './chrome.js';
+import * as bgm from './bgm.js';
 
 // ---------- 결제창에서 돌아온 경우: 주소의 결제 정보를 먼저 챙겨 두고 주소를 정리해요 ----------
 {
@@ -145,6 +146,9 @@ main.addEventListener('change', (e) => {
 
 // 상단·하단 메뉴처럼 화면 밖에 있는 버튼
 const globalActions = {
+  async 'toggle-bgm'() {
+    await bgm.toggle();
+  },
   async 'dismiss-banner'() {
     sessionStorage.setItem('sr-banner-hidden', '1');
     document.getElementById('banner').innerHTML = '';
@@ -153,6 +157,8 @@ const globalActions = {
 
 // ---------- 시작 ----------
 async function start() {
+  bgm.onChange(() => renderChrome(parseHash().path));
+  bgm.checkAvailable().then((ok) => ok && bgm.resumeIfSaved());
   try {
     state.api = await getApi();
     await refreshUser();
