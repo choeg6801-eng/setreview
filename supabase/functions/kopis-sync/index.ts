@@ -7,7 +7,7 @@ const KOPIS = 'https://www.kopis.or.kr/openApi/restful';
 const GENRE_POP = 'CCCD';          // 대중음악
 const MONTHS_AHEAD = 12;           // 오늘부터 1년 치 (티켓팅이 일찍 열리는 공연까지)
 const MAX_DETAIL_CALLS = 150;      // 한 번에 새로 확인할 공연 수 (나머지는 다음 실행 때)
-const CONCURRENCY = 6;
+const CONCURRENCY = 3;
 
 async function pool<T>(items: T[], fn: (it: T) => Promise<void>) {
   let i = 0;
@@ -40,16 +40,28 @@ const field = (xml: string, tag: string) => {
 };
 
 async function kopis(path: string, params: Record<string, string>) {
-  const key = Deno.env.get('KOPIS_API_KEY');
+  const key = (Deno.env.get('KOPIS_API_KEY') || '').trim().replace(/^["']|["']$/g, '');
   if (!key) throw new Error('KOPIS_API_KEY 가 설정되지 않았어요.');
   const qs = new URLSearchParams({ service: key, ...params });
-  const res = await fetch(`${KOPIS}/${path}?${qs}`, { signal: AbortSignal.timeout(20_000) });
+  let res: Response | null = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    res = await fetch(`${KOPIS}/${path}?${qs}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SetReview/1.0; +https://setreview.vercel.app)', Accept: 'application/xml,text/xml;q=0.9,*/*;q=0.8' },
+      signal: AbortSignal.timeout(20_000),
+    });
+    if (res.status !== 400 && res.status !== 429 && res.status < 500) break;
+    await new Promise((r) => setTimeout(r, 1500 * (attempt + 1))); // 잠깐 쉬었다가 다시 시도
+  }
+  res = res!;
   const text = await res.text();
-  if (!res.ok) throw new Error(`KOPIS ${path} 요청 실패 (${res.status})`);
   // 오류도 <db> 안에 <returncode>·<errmsg> 로 와요 (예: 등록되지 않은 키)
   const errmsg = field(text, 'errmsg');
   const code = field(text, 'returncode');
-  if (errmsg || (code && code !== '00')) throw new Error(`KOPIS 오류: ${errmsg || code}`);
+  if (!res.ok || errmsg || (code && code !== '00')) {
+    // 키 값은 남기지 않고 길이와 형식만 알려 줘요 (KOPIS 키는 보통 영문·숫자 32자)
+    const hint = ` (입력된 키: ${key.length}자${/^[0-9a-z]+$/i.test(key) ? '' : ', 영문·숫자 외 문자 포함'})`;
+    throw new Error(`KOPIS ${path} 오류${res.ok ? '' : ` ${res.status}`}: ${errmsg || code || text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120)}${hint}`);
+  }
   return text;
 }
 
@@ -70,10 +82,10 @@ type Item = { id: string; title: string; from: string; to: string; venue: string
 
 async function listAll(path: string) {
   const items = new Map<string, Item>();
-  // 31일 구간 12개를 4개씩 동시에 조회해요 (실행 시간 제한 150초 안에 끝내려고)
+  // 31일 구간 12개를 2개씩 동시에 조회해요 (실행 시간 제한 150초 안에 끝내려고)
   let w = 0;
   const wins = windows();
-  await Promise.all(Array.from({ length: 4 }, async () => {
+  await Promise.all(Array.from({ length: 2 }, async () => {
     while (w < wins.length) {
       const [st, ed] = wins[w++];
       for (let page = 1; page <= 30; page++) {
@@ -162,10 +174,9 @@ async function isAuthorized(req: Request) {
 async function sync() {
   const started = Date.now();
   // 공연 목록과 축제 목록을 함께 조회 (축제 목록은 계정에 따라 안 열려 있을 수 있어서 실패해도 계속 진행해요)
-  const [list, fest] = await Promise.all([
-    listAll('pblprfr'),
-    listAll('prffest').then((m) => new Set(m.keys())).catch(() => new Set<string>()),
-  ]);
+  // 한꺼번에 많이 요청하면 KOPIS 가 막아서, 공연 목록 → 축제 목록 순서로 차례차례 불러요
+  const list = await listAll('pblprfr');
+  const fest = await listAll('prffest').then((m) => new Set(m.keys())).catch(() => new Set<string>());
 
   const { data: existingRows } = await db.from('events').select('id, external_id').eq('source', 'kopis');
   const existing = new Map((existingRows || []).map((r) => [r.external_id as string, r.id as string]));
