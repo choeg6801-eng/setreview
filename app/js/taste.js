@@ -80,7 +80,7 @@ export function seenFrom(records, events, idx) {
 export function matchEvents(events, { favorites = [], genres = [], seen = [] }, idx) {
   const out = [];
   for (const ev of events) {
-    if (ev.status === 'ended') continue;
+    if (ev.status === 'ended' || ev.published === false) continue; // 운영자에게만 보이는 검토 전 초안은 빼요
     const text = eventText(ev);
     const fav = favorites.find((f) => keysFor(f, idx).some((k) => text.includes(k)));
     const seenHit = !fav && seen.find((s) => keysFor(s, idx).some((k) => text.includes(k)));
@@ -108,6 +108,7 @@ export function recommendArtists({ favorites = [], seen = [], genres = [], event
     cands.set(key, c);
   };
 
+  events = events.filter((e) => e.published !== false);
   // 1) 같은 공연 · 페스티벌에 함께 나온 아티스트
   for (const ev of events) {
     const people = eventPeople(ev);

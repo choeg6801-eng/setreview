@@ -131,8 +131,10 @@ export const supabaseBackend = {
   },
 
   // ---------- 공연 ----------
-  async listEvents() {
-    const events = check(await sb.from('events').select('*').order('starts_at'));
+  async listEvents({ includeUnpublished = false } = {}) {
+    let q = sb.from('events').select('*').order('starts_at');
+    if (!includeUnpublished) q = q.eq('published', true); // 운영자도 일반 화면에서는 공개된 공연만
+    const events = check(await q);
     const perfs = await inQuery('performances', 'event_id', events.map((e) => e.id), 'id, event_id, artist_id, status, sort');
     const artists = await inQuery('artists', 'id', uniq(perfs.map((p) => p.artist_id)), 'id, name');
     const byArtist = indexBy(artists);

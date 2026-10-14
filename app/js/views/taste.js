@@ -22,7 +22,7 @@ export default async function taste(ctx) {
   const seen = seenFrom(records, events, idx);
   const favKeys = new Set(t.favorites.map(norm));
   const isFav = (n) => favKeys.has(norm(n)) || (idx.get(norm(n))?.keys || []).some((k) => favKeys.has(k));
-  const upcoming = events.filter((e) => e.status !== 'ended');
+  const upcoming = events.filter((e) => e.status !== 'ended' && e.published !== false);
   const matched = matchEvents(events, { favorites: t.favorites, genres: t.genres, seen: seen.artists.map((a) => a.name) }, idx);
   const hasTaste = t.favorites.length + t.genres.length > 0;
   const recs = recommendArtists({
