@@ -188,8 +188,13 @@ async function sync() {
   // 소식 수집·제보·직접 등록으로 이미 있는 공연(같은 날, 같은 공연장)은 KOPIS 에서 또 넣지 않아요
   const { data: otherRows } = await db.from('events').select('starts_at, venue').neq('source', 'kopis').gte('ends_at', new Date(Date.now() - 7 * 86400000).toISOString());
   const kstDate = (iso: string) => new Date(Date.parse(iso) + 9 * 3600000).toISOString().slice(0, 10);
-  const otherKeys = new Set((otherRows || []).map((r) => `${kstDate(r.starts_at as string)}|${normName(r.venue as string).slice(0, 4)}`));
-  const isDupOfOther = (it: Item) => otherKeys.has(`${it.from.replace(/\./g, '-')}|${normName(it.venue).slice(0, 4)}`);
+  // 공연장 이름은 "킨텍스" / "킨텍스 제1전시장 4·5홀"처럼 표기가 달라서, 한쪽이 다른 쪽으로 시작하면 같은 곳으로 봐요
+  const others = (otherRows || []).map((r) => ({ d: kstDate(r.starts_at as string), v: normName(r.venue as string) }));
+  const sameVenue = (a: string, b: string) => Math.min(a.length, b.length) >= 2 && (a.startsWith(b) || b.startsWith(a) || a.slice(0, 4) === b.slice(0, 4));
+  const isDupOfOther = (it: Item) => {
+    const d = it.from.replace(/\./g, '-'), v = normName(it.venue);
+    return others.some((o) => o.d === d && sameVenue(o.v, v));
+  };
 
   // 이미 확인해서 제외한 공연은 30일 동안 다시 확인하지 않아요
   const since = new Date(Date.now() - 30 * 86400000).toISOString();
