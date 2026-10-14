@@ -126,7 +126,9 @@ export default async function eventView(ctx) {
         <ol class="songs">
           ${p.predicted.map((it, i) => songRow(it, rowOpts(it, i + 1, { state: predictedState(it) })))}
         </ol>
-      </div>` : (!hasActual ? html`<div class="card"><p class="muted">예상 셋리스트를 준비하고 있어요. 같은 투어의 최근 공연 곡을 바탕으로 만들고, <strong>내 공연에 담아 둔 공연은 몇 시간 안에 먼저</strong> 준비해 드려요.</p></div>` : '')}
+      </div>` : (!hasActual ? (ev.predictedStatus === 'unavailable'
+        ? html`<div class="card"><p class="muted">공개된 최근 셋리스트를 찾지 못해 예상 셋리스트를 만들지 못했어요.${ev.predictedNote ? ` (${ev.predictedNote})` : ''} 새 공연 소식이 나오면 다시 확인할게요.</p></div>`
+        : html`<div class="card"><p class="muted">예상 셋리스트를 준비하고 있어요. 같은 투어의 최근 공연 곡을 바탕으로 만들고, <strong>내 공연에 담아 둔 공연은 몇 시간 안에 먼저</strong> 준비해 드려요.</p></div>`) : '')}
     </section>`;
   }
 
@@ -163,7 +165,7 @@ export default async function eventView(ctx) {
         </div>
       </section>
       <div class="container">
-        ${ev.performances.length ? ev.performances.map(perfBlock) : html`<div class="card" style="margin-top:24px"><p class="muted">${ev.source !== 'manual' ? '예상 셋리스트는 공연이 가까워지면 준비돼요. 지금은 일정과 예매 정보만 있어요. 내 공연에 담아 두면 티켓 오픈과 D-day를 챙겨 드려요.' : '출연진을 준비하고 있어요.'}</p></div>`}
+        ${ev.performances.length ? ev.performances.map(perfBlock) : html`<div class="card" style="margin-top:24px"><p class="muted">${ev.predictedStatus === 'unavailable' ? `공개된 최근 셋리스트를 찾지 못해 예상 셋리스트를 만들지 못했어요.${ev.predictedNote ? ` (${ev.predictedNote})` : ''} 새 소식이 나오면 다시 확인할게요.` : ev.source !== 'manual' ? '예상 셋리스트를 준비하고 있어요. 공연이 가까운 순서로 만들고, 내 공연에 담아 두면 몇 시간 안에 먼저 준비해 드려요.' : '출연진을 준비하고 있어요.'}</p></div>`}
         ${!prem ? html`<div class="card" style="margin-top:28px">
           <div class="row between">
             <div class="stack" style="gap:4px">
