@@ -277,9 +277,16 @@ create policy "segments admin"        on public.song_segments for all using (pri
 -- 내 공연: 본인 것만. 멤버십이 아니면 1개까지만 등록
 create policy "follows read own"   on public.follows for select using (user_id = (select auth.uid()));
 create policy "follows delete own" on public.follows for delete using (user_id = (select auth.uid()));
+-- 같은 표를 정책 안에서 다시 조회하면 무한 반복 오류가 나서, 개수는 별도 함수로 세요
+create or replace function private.my_follow_count()
+returns integer language sql stable security definer set search_path = ''
+as $$ select count(*)::int from public.follows where user_id = (select auth.uid()) $$;
+revoke all on function private.my_follow_count() from public;
+grant execute on function private.my_follow_count() to authenticated;
+
 create policy "follows insert own" on public.follows for insert with check (
   user_id = (select auth.uid())
-  and (private.can_view_premium() or (select count(*) from public.follows f where f.user_id = (select auth.uid())) < 1)
+  and ((select private.can_view_premium()) or (select private.my_follow_count()) < 1)
 );
 
 -- 예습 체크: 본인 것만
