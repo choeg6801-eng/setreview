@@ -199,8 +199,31 @@ export const supabaseBackend = {
   async listAttendances() {
     if (!authSession?.user) return [];
     const rows = check(await sb.from('attendances').select('*').eq('user_id', authSession.user.id).order('attended_on', { ascending: false }));
-    const evs = await inQuery('events', 'id', uniq(rows.map((r) => r.event_id)), 'id, slug, cover_url');
-    return rows.map((r) => shapeAttendance(r, indexBy(evs)));
+    const evIds = uniq(rows.map((r) => r.event_id));
+    const [evs, perfs, reqs] = await Promise.all([
+      inQuery('events', 'id', evIds, 'id, slug, cover_url'),
+      inQuery('performances', 'event_id', evIds, 'id, event_id'),
+      sb.from('setlist_requests').select('id, attendance_id, status, note, created_at').eq('user_id', authSession.user.id),
+    ]);
+    const items = await inQuery('setlist_items', 'performance_id', perfs.map((p) => p.id), 'performance_id, kind');
+    const perfEvent = Object.fromEntries(perfs.map((p) => [p.id, p.event_id]));
+    const withSetlist = new Set(items.filter((it) => it.kind === 'actual').map((it) => perfEvent[it.performance_id]));
+    const reqByAtt = Object.fromEntries((reqs.data || []).map((r) => [r.attendance_id, r]));
+    return rows.map((r) => shapeAttendance(r, indexBy(evs), withSetlist, reqByAtt));
+  },
+  async requestSetlist(rec) {
+    const user = requireUser();
+    if (!rec.artist?.trim()) throw new UserError('아티스트를 적어 두어야 셋리스트를 찾을 수 있어요. 기록을 고쳐 아티스트를 넣어 주세요.');
+    const { error } = await sb.from('setlist_requests').insert({
+      user_id: user.id, attendance_id: rec.id, artist: rec.artist.slice(0, 200), title: rec.title.slice(0, 120),
+      show_date: rec.date, venue: rec.venue || null, city: rec.city || null,
+    });
+    if (error?.code === '23505') throw new UserError('이미 셋리스트를 찾고 있어요.');
+    if (error) throw toUserError(error);
+  },
+  async cancelSetlistRequest(id) {
+    const user = requireUser();
+    check(await sb.from('setlist_requests').delete().eq('id', id).eq('user_id', user.id));
   },
   async saveAttendance(input) {
     const user = requireUser();
@@ -290,6 +313,16 @@ export const supabaseBackend = {
     const n = String(name || '').trim();
     if (!n) throw new UserError('아티스트 이름을 적어 주세요.');
     check(await sb.from('artists').update({ name: n, name_ko: String(nameKo || '').trim() || null, aliases, genres, similar_artists: similar }).eq('id', id));
+  },
+
+  async runPosterFill() {
+    const { data, error } = await sb.functions.invoke('poster-fill', { body: { limit: 80 } });
+    if (error) {
+      let msg = error.message;
+      try { msg = (await error.context.json()).error || msg; } catch { /* 무시 */ }
+      throw new UserError(msg);
+    }
+    return data;
   },
 
   // ---------- 공연 제보 · 검토 ----------

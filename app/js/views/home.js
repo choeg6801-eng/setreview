@@ -20,6 +20,21 @@ const KINDS = [
   { id: 'visit', label: '내한 공연' },
 ];
 
+// 날짜순 목록을 월별로 묶어요 (진행 중 · 다가오는 공연만, 지난 공연은 한 묶음)
+function monthGroups(list) {
+  const out = [];
+  for (const e of list) {
+    const key = e.status === 'ended' ? 'ended' : e.status === 'live' ? 'live' : new Date(Date.parse(e.startsAt) + 9 * 3600000).toISOString().slice(0, 7);
+    let g = out[out.length - 1];
+    if (!g || g.key !== key) {
+      const label = key === 'ended' ? '지난 공연' : key === 'live' ? '지금 진행 중' : `${key.slice(0, 4)}년 ${Number(key.slice(5))}월`;
+      out.push(g = { key, label, items: [] });
+    }
+    g.items.push(e);
+  }
+  return out;
+}
+
 export default async function home(ctx) {
   const { api, state, query } = ctx;
   const events = await api.listEvents();
@@ -121,7 +136,10 @@ export default async function home(ctx) {
               ${k.label}<span class="count">${searched.filter(kindOk(k.id)).length}</span></a>`)}
           </div>
           ${list.length
-            ? html`<div class="grid">${list.map((e) => eventCard(e, { followed: state.follows.has(e.id) }))}</div>`
+            ? monthGroups(list).map((g) => html`<div class="month-block">
+                ${g.label ? html`<h3 class="month-head">${g.label} <span class="faint small">${g.items.length}개</span></h3>` : ''}
+                <div class="grid">${g.items.map((e) => eventCard(e, { followed: state.follows.has(e.id) }))}</div>
+              </div>`)
             : emptyState(q ? '찾는 공연이 없어요' : '아직 등록된 공연이 없어요', q ? '다른 이름이나 도시로 검색해 보세요. 새로 발표된 공연이면 제보해 주세요.' : '곧 새로운 공연이 올라올 거예요.', html`${q ? html`<a class="btn btn-outline" href="#/">전체 공연 보기</a> ` : ''}<a class="btn btn-primary" href="#/submit">공연 제보하기</a>`)}
           <div class="card submit-cta">
             <span><strong>발표됐는데 아직 없는 공연이 있나요?</strong> <span class="muted small">공지 링크와 함께 알려 주시면 확인하고 바로 올려 드려요.</span></span>

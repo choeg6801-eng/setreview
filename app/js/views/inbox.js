@@ -31,7 +31,7 @@ export default async function inbox(ctx) {
       ${list.length ? html`<ol class="inbox">
         ${list.map((n) => html`<li class="inbox-item ${n.read ? '' : 'unread'}">
           <a href="#/e/${encodeURIComponent(n.event.slug)}">
-            ${n.event.coverUrl ? html`<img src="${n.event.coverUrl}" alt="" loading="lazy">` : html`<span class="inbox-art" aria-hidden="true">${icon('music', 22)}</span>`}
+            ${n.event.coverUrl ? html`<img src="${n.event.coverUrl}" alt="" loading="lazy" referrerpolicy="no-referrer">` : html`<span class="inbox-art" aria-hidden="true">${icon('music', 22)}</span>`}
             <span class="inbox-main">
               <span class="inbox-reason">${n.kind === 'artist' ? '♥ ' : ''}${n.reason}${n.read ? '' : html` <span class="pill pill-accent">NEW</span>`}</span>
               <strong>${n.event.title}</strong>

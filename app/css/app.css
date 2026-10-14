@@ -535,3 +535,39 @@ a.bar-col:hover .bar-l { color: var(--text); }
   .ticket-row { grid-template-columns: 70px minmax(0, 1fr); }
   .ticket-row .pill { grid-column: 2; justify-self: start; }
 }
+
+/* ---------- 운영자 공연 목록 (포스터) ---------- */
+.aev-group { margin-bottom: 22px; }
+.aev-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.aev { display: grid; grid-template-columns: 64px 92px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 10px 12px; border-radius: var(--radius); background: var(--card); border: 1px solid var(--line); }
+.aev-poster { width: 64px; height: 86px; border-radius: 10px; overflow: hidden; background: var(--card-2); display: flex; align-items: center; justify-content: center; color: var(--faint); }
+.aev-poster img { width: 100%; height: 100%; object-fit: cover; }
+.aev-poster .cover-fallback { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+.aev-date { display: flex; flex-direction: column; gap: 3px; font-family: var(--mono); }
+.aev-date strong { font-size: 18px; }
+.aev-date > span:not(.pill) { font-size: 12px; color: var(--muted); }
+.aev-date .pill { align-self: flex-start; }
+.aev-main { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.aev-title { color: var(--text); font-weight: 800; text-decoration: none; }
+.aev-title:hover { text-decoration: underline; }
+@media (max-width: 760px) {
+  .aev { grid-template-columns: 56px minmax(0, 1fr); }
+  .aev-poster { width: 56px; height: 76px; grid-row: span 2; }
+  .aev-date { flex-direction: row; align-items: center; gap: 8px; }
+  .aev-main { grid-column: 2; }
+  .aev .actions { grid-column: 2; }
+}
+/* 세로 포스터: 잘리지 않게 전체를 보여 주고, 뒤는 흐린 포스터로 채워요 */
+.event-cover.is-poster { aspect-ratio: 4 / 3; }
+.event-cover.is-poster .poster-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: blur(22px) brightness(.5) saturate(1.2); transform: scale(1.25); }
+.event-cover.is-poster .poster { position: absolute; inset: 8px 0; width: 100%; height: calc(100% - 16px); object-fit: contain; }
+.event-cover.is-poster:hover .poster { transform: scale(1.02); }
+.event-cover.is-poster:hover .poster-bg { transform: scale(1.25); }
+.month-block + .month-block { margin-top: 26px; }
+.month-head { font-size: 18px; font-weight: 900; margin: 0 0 12px; display: flex; align-items: baseline; gap: 8px; }
+.setlist-chip { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; padding: 6px 12px; border-radius: 999px; font: inherit; font-size: 13px; font-weight: 700; text-decoration: none; border: 1px solid var(--line-2); background: transparent; color: var(--muted); }
+.setlist-chip.ask { cursor: pointer; color: var(--accent-2); border-color: rgba(255, 106, 31, 0.5); }
+.setlist-chip.ask:hover { background: rgba(255, 106, 31, 0.12); }
+.setlist-chip.ok { color: var(--ok); border-color: rgba(123, 224, 168, 0.4); }
+.setlist-chip.wait { color: var(--peach); border-style: dashed; }
+.setlist-chip.none { color: var(--faint); font-weight: 500; }

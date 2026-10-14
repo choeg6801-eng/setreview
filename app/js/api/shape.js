@@ -124,10 +124,13 @@ export function groupSegments(segs) {
 }
 
 // 내 공연 기록 한 줄
-export function shapeAttendance(a, eventsById = {}) {
+export function shapeAttendance(a, eventsById = {}, setlistEvents = new Set(), requests = {}) {
   const ev = a.event_id ? eventsById[a.event_id] : null;
+  const req = requests[a.id] || null;
   return {
     id: a.id,
+    hasSetlist: !!(a.event_id && setlistEvents.has(a.event_id)),
+    setlistRequest: req ? { id: req.id, status: req.status, note: req.note || '', createdAt: req.created_at } : null,
     eventId: a.event_id || null,
     eventSlug: ev?.slug || null,
     coverUrl: ev?.cover_url || '',

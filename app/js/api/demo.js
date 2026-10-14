@@ -174,8 +174,27 @@ export const demo = {
     const u = me();
     if (!u) return tick([]);
     const evs = indexBy(db.events);
-    return tick(db.attendances.filter((a) => a.user_id === u.id).map((a) => shapeAttendance(a, evs))
+    const perfEvent = Object.fromEntries(db.performances.map((p) => [p.id, p.event_id]));
+    const withSetlist = new Set(db.setlist.filter((it) => it.kind === 'actual').map((it) => perfEvent[it.performance_id]));
+    const reqs = Object.fromEntries((db.setlist_requests || []).filter((r) => r.user_id === u.id).map((r) => [r.attendance_id, r]));
+    return tick(db.attendances.filter((a) => a.user_id === u.id).map((a) => shapeAttendance(a, evs, withSetlist, reqs))
       .sort((a, b) => b.date.localeCompare(a.date)));
+  },
+  async requestSetlist(rec) {
+    const u = requireUser();
+    if (!rec.artist?.trim()) throw new UserError('아티스트를 적어 두어야 셋리스트를 찾을 수 있어요. 기록을 고쳐 아티스트를 넣어 주세요.');
+    db.setlist_requests = db.setlist_requests || [];
+    if (db.setlist_requests.some((r) => r.attendance_id === rec.id)) throw new UserError('이미 셋리스트를 찾고 있어요.');
+    db.setlist_requests.push({ id: uid('slr'), user_id: u.id, attendance_id: rec.id, artist: rec.artist, title: rec.title, show_date: rec.date,
+      status: 'pending', note: '데모 모드에서는 실제로 찾지 않아요. Supabase 에 연결하면 매일 수집 작업이 찾아 드려요.', created_at: new Date().toISOString() });
+    save();
+    return tick();
+  },
+  async cancelSetlistRequest(id) {
+    const u = requireUser();
+    db.setlist_requests = (db.setlist_requests || []).filter((r) => !(r.id === id && r.user_id === u.id));
+    save();
+    return tick();
   },
   async saveAttendance(input) {
     const u = requireUser();
@@ -289,6 +308,8 @@ export const demo = {
     save();
     return tick();
   },
+
+  async runPosterFill() { throw new UserError('데모 모드에서는 포스터를 가져올 수 없어요. Supabase 에 연결하면 동작해요.'); },
 
   // ---------- 공연 제보 · 검토 ----------
   async submitEvent(input) {

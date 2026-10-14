@@ -82,6 +82,16 @@ export default async function log(ctx) {
     g.items.push(r);
   }
 
+  // 실제 셋리스트: 있으면 바로가기, 없으면 불러오기 요청 · 진행 상태
+  const setlistLine = (r) => {
+    if (r.hasSetlist && r.eventSlug) return html`<a class="setlist-chip ok" href="#/e/${encodeURIComponent(r.eventSlug)}">${icon('music', 14)} 실제 셋리스트 보기</a>`;
+    const q = r.setlistRequest;
+    if (q?.status === 'pending') return html`<span class="setlist-chip wait">${icon('clock', 14)} 셋리스트 찾는 중 · 보통 하루 안에 알려 드려요</span>`;
+    if (q?.status === 'not_found') return html`<span class="setlist-chip none">셋리스트를 찾지 못했어요${q.note ? ` · ${q.note}` : ''}</span>`;
+    if (q?.status === 'found' && r.eventSlug) return html`<a class="setlist-chip ok" href="#/e/${encodeURIComponent(r.eventSlug)}">${icon('music', 14)} 실제 셋리스트 보기</a>`;
+    return html`<button type="button" class="setlist-chip ask" data-action="ask-setlist" data-id="${r.id}">${icon('music', 14)} 실제 셋리스트 불러오기</button>`;
+  };
+
   const card = (r) => html`<li class="log-item">
     <div class="log-date" aria-hidden="true"><span>${r.date.slice(5, 7)}.${r.date.slice(8, 10)}</span>${year === 'all' ? html`<small>${r.date.slice(0, 4)}</small>` : ''}</div>
     <div class="log-main">
@@ -93,6 +103,7 @@ export default async function log(ctx) {
         ${stars(r.rating)}
       </div>
       ${r.memo ? html`<p class="log-memo">“${r.memo}”</p>` : ''}
+      ${setlistLine(r)}
     </div>
     <div class="log-actions">
       <a class="icon-btn" href="#/log?${new URLSearchParams({ y: year, edit: r.id })}" aria-label="${r.title} 기록 고치기">${icon('edit', 18)}</a>
@@ -229,6 +240,13 @@ export default async function log(ctx) {
         await api.saveAttendance(fromEvent(ev));
         toast('기록했어요. 별점과 메모는 연필 버튼으로 남길 수 있어요.', 'ok');
         navigate('/log', { y: kstDate(ev.startsAt).slice(0, 4) });
+      },
+      async 'ask-setlist'(el) {
+        const r = records.find((x) => x.id === el.dataset.id);
+        if (!r) return;
+        await api.requestSetlist(r);
+        toast('셋리스트를 찾아볼게요. 찾으면 알림함으로 알려 드려요.', 'ok');
+        ctx.rerender();
       },
       async delete(el) {
         const r = records.find((x) => x.id === el.dataset.id);

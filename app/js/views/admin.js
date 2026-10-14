@@ -1,6 +1,6 @@
 // 운영자 화면: 라이브 진행 · 공연 · 곡 · 제보 · 출시 알림 · 설정
-import { html, toast, fmtDate, fmtTime, fmtDateTime, toLocalInput, fromLocalInput, mmss, parseMmss, slugify, median, timeAgo, UserError } from '../util.js';
-import { art, emptyState, statusPill, KIND_LABEL } from '../components.js';
+import { html, toast, dday, fmtDate, fmtTime, fmtDateTime, toLocalInput, fromLocalInput, mmss, parseMmss, slugify, median, timeAgo, UserError } from '../util.js';
+import { art, emptyState, statusPill, KIND_LABEL, ticketInfo } from '../components.js';
 import { icon } from '../icons.js';
 import { isDemo, config } from '../config.js';
 import { navigate } from '../router.js';
@@ -275,28 +275,73 @@ const TAB_VIEWS = {
 
   // ============================================================ 공연
   async events(ctx) {
-    const { api, id } = ctx;
+    const { api, id, query, rerender } = ctx;
     if (id) return eventEditor(ctx);
-    const events = (await api.listEvents({ includeUnpublished: true })).sort((a, b) => b.startsAt.localeCompare(a.startsAt));
+    const all = await api.listEvents({ includeUnpublished: true });
+    const scope = ['upcoming', 'past', 'drafts'].includes(query.show) ? query.show : 'upcoming';
+    const isPast = (e) => e.status === 'ended';
+    const lists = {
+      upcoming: all.filter((e) => !isPast(e) && e.published).sort((a, b) => a.startsAt.localeCompare(b.startsAt)),
+      past: all.filter((e) => isPast(e)).sort((a, b) => b.startsAt.localeCompare(a.startsAt)),
+      drafts: all.filter((e) => !isPast(e) && !e.published).sort((a, b) => a.startsAt.localeCompare(b.startsAt)),
+    };
+    const list = lists[scope];
+    const noPoster = all.filter((e) => !isPast(e) && !e.coverUrl).length;
+    // 월별로 묶기 (한국 시간 기준)
+    const monthOf = (iso) => new Date(Date.parse(iso) + 9 * 3600000).toISOString().slice(0, 7);
+    const groups = [];
+    for (const e of list) {
+      const k = monthOf(e.startsAt);
+      let g = groups[groups.length - 1];
+      if (!g || g.key !== k) groups.push(g = { key: k, items: [] });
+      g.items.push(e);
+    }
+    const SRC = { kopis: 'KOPIS', news: '소식 수집', report: '제보', manual: '직접 등록' };
+    const row = (e) => { const t = ticketInfo(e); return html`<li class="aev">
+      <a class="aev-poster" href="#/admin/events/${e.id}" aria-label="${e.title} 편집">${e.coverUrl ? html`<img src="${e.coverUrl}" alt="" loading="lazy" referrerpolicy="no-referrer">` : html`<span class="cover-fallback" aria-hidden="true">${icon('music', 22)}</span>`}</a>
+      <div class="aev-date"><strong>${new Date(Date.parse(e.startsAt) + 9 * 3600000).toISOString().slice(5, 10).replace('-', '.')}</strong><span>${fmtDate(e.startsAt, { month: undefined, day: undefined })} ${fmtTime(e.startsAt)}</span><span class="pill pill-soft">${dday(e.startsAt)}</span></div>
+      <div class="aev-main">
+        <a class="aev-title" href="#/admin/events/${e.id}">${e.title}</a>
+        <span class="small muted">${[e.city, e.venue].filter(Boolean).join(' · ') || '장소 미정'}${e.artists.length || e.lineup ? ` · ${e.artists.join(', ') || e.lineup}` : ''}</span>
+        <span class="row" style="gap:6px">
+          <span class="pill pill-soft">${KIND_LABEL[e.kind]}</span>${e.isVisit ? html`<span class="pill pill-visit">내한</span>` : ''}
+          ${e.published ? html`<span class="pill pill-ok">공개</span>` : html`<span class="pill pill-muted">비공개</span>`}
+          <span class="faint small">${SRC[e.source] || ''}</span>
+          ${t ? html`<span class="small ${t.soon ? 'accent' : 'muted'}">${icon('ticket', 13)} ${t.label}</span>` : ''}
+        </span>
+      </div>
+      <div class="actions">
+        <a class="btn btn-outline btn-sm" href="#/admin/events/${e.id}">편집</a>
+        <a class="btn btn-ghost btn-sm" href="#/e/${encodeURIComponent(e.slug)}">보기</a>
+      </div>
+    </li>`; };
     return {
       title: '공연',
       html: html`
-        <div class="row between"><h1>공연</h1><a class="btn btn-primary" href="#/admin/events/new">${icon('plus', 18)} 새 공연</a></div>
-        ${events.length ? html`<div class="table-wrap"><table class="table">
-          <thead><tr><th>공연</th><th>날짜</th><th>상태</th><th>공개</th><th><span class="sr-only">관리</span></th></tr></thead>
-          <tbody>${events.map((e) => html`<tr>
-            <td><strong>${e.title}</strong><div class="muted small">${KIND_LABEL[e.kind]} · ${e.artists.join(', ') || '출연진 없음'}</div></td>
-            <td class="small">${fmtDateTime(e.startsAt)}</td>
-            <td>${statusPill(e)}</td>
-            <td>${e.published ? html`<span class="pill pill-ok">공개</span>` : html`<span class="pill pill-muted">비공개</span>`}</td>
-            <td><div class="actions">
-              <a class="btn btn-outline btn-sm" href="#/admin/events/${e.id}">편집</a>
-              <a class="btn btn-ghost btn-sm" href="#/e/${encodeURIComponent(e.slug)}">보기</a>
-            </div></td>
-          </tr>`)}</tbody>
-        </table></div>` : emptyState('아직 공연이 없어요', '첫 공연을 등록해 보세요.', '')}`,
+        <div class="row between"><h1>공연</h1>
+          <div class="row" style="gap:8px">
+            ${noPoster ? html`<button type="button" class="btn btn-outline" data-action="fill-posters">${icon('download', 18)} 포스터 채우기 <span class="pill pill-soft">${noPoster}</span></button>` : ''}
+            <a class="btn btn-primary" href="#/admin/events/new">${icon('plus', 18)} 새 공연</a>
+          </div>
+        </div>
+        <div class="tabs" role="tablist" style="margin:6px 0 18px">
+          ${[['upcoming', '다가오는 공연'], ['drafts', '검토 전 초안'], ['past', '지난 공연']].map(([k, label]) => html`<a class="tab ${scope === k ? 'active' : ''}" role="tab" aria-selected="${scope === k ? 'true' : 'false'}" href="#/admin/events?show=${k}">${label}<span class="count">${lists[k].length}</span></a>`)}
+        </div>
+        ${groups.length ? groups.map((g) => html`<section class="aev-group">
+          <h2 class="log-group-title">${g.key.slice(0, 4)}년 ${Number(g.key.slice(5))}월 <span class="faint small">${g.items.length}개</span></h2>
+          <ol class="aev-list">${g.items.map(row)}</ol>
+        </section>`) : emptyState(scope === 'drafts' ? '검토할 초안이 없어요' : '아직 공연이 없어요', scope === 'upcoming' ? '공연을 등록하거나 검토 대기에서 공개해 보세요.' : '', '')}`,
+      actions: {
+        async 'fill-posters'() {
+          toast('예매 · 공지 페이지에서 포스터를 찾고 있어요. 30초쯤 걸려요.');
+          const r = await api.runPosterFill();
+          toast(`포스터 ${r.filled}개를 채웠어요.${r.checked - r.filled ? ` ${r.checked - r.filled}개는 찾지 못했어요.` : ''}`, 'ok');
+          rerender();
+        },
+      },
     };
   },
+
 
   // ============================================================ 곡
   async songs(ctx) {

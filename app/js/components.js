@@ -31,8 +31,10 @@ export function ticketInfo(ev, now = Date.now()) {
 
 export function eventCard(ev, { followed = false, showFollow = true, note = '' } = {}) {
   return html`<article class="event-card ${ev.status === 'live' ? 'is-live' : ''}">
-    <a class="event-cover" href="#/e/${encodeURIComponent(ev.slug)}" aria-label="${ev.title} 자세히 보기">
-      ${ev.coverUrl ? html`<img src="${ev.coverUrl}" alt="" loading="lazy" decoding="async">` : html`<span class="cover-fallback" aria-hidden="true"></span>`}
+    <a class="event-cover ${ev.coverUrl && ev.source !== 'manual' ? 'is-poster' : ''}" href="#/e/${encodeURIComponent(ev.slug)}" aria-label="${ev.title} 자세히 보기">
+      ${ev.coverUrl && ev.source !== 'manual'
+        ? html`<img class="poster-bg" src="${ev.coverUrl}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" aria-hidden="true"><img class="poster" src="${ev.coverUrl}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">`
+        : ev.coverUrl ? html`<img src="${ev.coverUrl}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : html`<span class="cover-fallback" aria-hidden="true"></span>`}
       <span class="event-cover-top">${statusPill(ev)}<span class="pill pill-glass">${KIND_LABEL[ev.kind] || ''}</span>${ev.isVisit ? html`<span class="pill pill-visit">내한</span>` : ''}</span>
     </a>
     <div class="event-body">

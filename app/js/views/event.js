@@ -133,7 +133,7 @@ export default async function eventView(ctx) {
     title: ev.title,
     html: html`
       <section class="ev-hero">
-        ${ev.coverUrl ? html`<img class="bg" src="${ev.coverUrl}" alt="">` : ''}
+        ${ev.coverUrl ? html`<img class="bg" src="${ev.coverUrl}" alt="" referrerpolicy="no-referrer">` : ''}
         <div class="container">
           ${backLink('#/', '공연 목록')}
           <div class="row">${statusPill(ev)}<span class="pill pill-glass">${KIND_LABEL[ev.kind] || ''}</span>${ev.isVisit ? html`<span class="pill pill-visit">내한</span>` : ''}</div>

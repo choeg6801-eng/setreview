@@ -684,3 +684,39 @@ revoke all on function private.generate_ticket_alerts(text) from public;
 -- ============================================================
 alter table public.artists add column if not exists similar_artists text[] not null default '{}';
 create index if not exists artists_name_norm_idx on public.artists (public.norm_name(name));
+
+-- ============================================================
+-- 다녀온 공연의 실제 셋리스트 요청 (매일 수집 작업이 찾아서 공연 · 무대 · 곡을 채워요)
+-- ============================================================
+create table if not exists public.setlist_requests (
+  id            uuid primary key default gen_random_uuid(),
+  user_id       uuid not null default auth.uid() references auth.users on delete cascade,
+  attendance_id uuid not null references public.attendances on delete cascade,
+  artist        text not null check (char_length(artist) between 1 and 200),
+  title         text check (char_length(title) <= 120),
+  show_date     date not null,
+  venue         text check (char_length(venue) <= 80),
+  city          text check (char_length(city) <= 40),
+  status        text not null default 'pending' check (status in ('pending', 'found', 'not_found')),
+  event_id      uuid references public.events on delete set null,
+  note          text,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now(),
+  unique (attendance_id)
+);
+create index if not exists setlist_requests_status_idx on public.setlist_requests(status, created_at);
+create index if not exists setlist_requests_user_idx on public.setlist_requests(user_id);
+create index if not exists setlist_requests_event_idx on public.setlist_requests(event_id);
+alter table public.setlist_requests enable row level security;
+drop policy if exists "setlist req insert own" on public.setlist_requests;
+drop policy if exists "setlist req read" on public.setlist_requests;
+drop policy if exists "setlist req delete own" on public.setlist_requests;
+create policy "setlist req insert own" on public.setlist_requests for insert
+  with check (user_id = (select auth.uid()) and status = 'pending' and event_id is null);
+create policy "setlist req read" on public.setlist_requests for select using (user_id = (select auth.uid()) or (select private.is_admin()));
+create policy "setlist req delete own" on public.setlist_requests for delete using (user_id = (select auth.uid()) and status <> 'found');
+revoke all on public.setlist_requests from anon;
+revoke update on public.setlist_requests from authenticated;
+
+alter table public.notifications drop constraint if exists notifications_kind_check;
+alter table public.notifications add constraint notifications_kind_check check (kind in ('artist', 'genre', 'ticket_d1', 'ticket_h1', 'setlist'));
