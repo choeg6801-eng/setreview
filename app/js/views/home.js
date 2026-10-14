@@ -5,7 +5,7 @@ import { fmtDate, fmtTime } from '../util.js';
 import { icon } from '../icons.js';
 import { navigate } from '../router.js';
 import { footer } from './footer.js';
-import { artistIndex, matchEvents, seenFrom } from '../taste.js';
+import { artistIndex, matchEvents, seenFrom, norm } from '../taste.js';
 
 const TABS = [
   { id: 'all', label: '전체' },
@@ -42,7 +42,23 @@ export default async function home(ctx) {
   const tab = TABS.some((t) => t.id === query.tab) ? query.tab : 'all';
 
   const kind = KINDS.some((k) => k.id === query.kind) ? query.kind : 'all';
-  const matches = (e) => !q || [e.title, e.venue, e.city, ...e.artists].join(' ').toLowerCase().includes(q);
+  // 검색: 띄어쓰기·대소문자 무시, 아티스트 한글/영문 이름과 다른 표기까지 함께 찾아요 ("마룬 파이브" → Maroon 5)
+  let qKeys = [];
+  if (q) {
+    const nq = norm(q);
+    qKeys = nq ? [nq] : [];
+    const catalog = nq.length >= 2 ? await api.listArtists().catch(() => []) : [];
+    for (const a of catalog) {
+      const keys = [a.name, a.nameKo, ...(a.aliases || [])].map(norm).filter((k) => k.length >= 2);
+      if (keys.some((k) => k === nq || (nq.length >= 3 && (k.includes(nq) || nq.includes(k))))) qKeys.push(...keys);
+    }
+    qKeys = [...new Set(qKeys)];
+  }
+  const matches = (e) => {
+    if (!q) return true;
+    const hay = norm([e.title, e.venue, e.city, e.lineup, ...e.artists].join(' '));
+    return qKeys.some((k) => hay.includes(k)) || [e.title, e.venue, e.city].join(' ').toLowerCase().includes(q);
+  };
   const kindOk = (k) => (e) => (k === 'festival' ? e.kind === 'festival' : k === 'visit' ? e.isVisit : true);
   const searched = events.filter(matches);
   const filtered = searched.filter(kindOk(kind));
