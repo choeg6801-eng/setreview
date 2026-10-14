@@ -45,7 +45,7 @@ const ALT_TRACK = /remix|live|acoustic|version|edit\b|demo|\bmix\b|instrumental|
 const ALT_ALBUM = /remix|live|greatest hits|best of|the hits|singles|collection|anthology|essentials|playlist|now that|\bhits\b|라이브|베스트|콘서트/i;
 const tag = (s: string) => ((s || '').match(/\(([^)]*)\)|\[([^\]]*)\]|\s-\s(.*)$/g) || []).join(' ');
 
-type Hit = { wrapperType?: string; artistId?: number; artistName: string; trackName: string; collectionName: string; artworkUrl100: string; trackTimeMillis?: number; releaseDate?: string };
+type Hit = { wrapperType?: string; artistId?: number; artistName: string; collectionArtistName?: string; trackName: string; collectionName: string; artworkUrl100: string; trackTimeMillis?: number; releaseDate?: string };
 type Row = { id: string; title: string; original_artist: string | null; artist_id: string; artist_name: string; artist_ko: string | null; aliases: string[] | null; apple_artist_id: number | null; apple_checked_at: string | null };
 
 let lastCall = 0;
@@ -76,6 +76,8 @@ function titleScore(h: Hit, titleKey: string, rawTitle: string) {
   // 셋리스트 제목에 없는 리믹스·라이브 표시가 곡명 꼬리표에 있으면 크게 깎아요
   if (ALT_TRACK.test(tag(h.trackName)) && !ALT_TRACK.test(rawTitle)) score -= 4;
   if (ALT_ALBUM.test(h.collectionName)) score -= 2;
+  // 여러 가수 모음집(컴필레이션)보다 가수 본인 앨범을 골라요
+  if (h.collectionArtistName && norm(h.collectionArtistName) !== norm(h.artistName)) score -= 3;
   return score;
 }
 function best(hits: Hit[], titleKey: string, keys: string[] | null, rawTitle = '') {
