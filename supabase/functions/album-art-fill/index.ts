@@ -40,9 +40,13 @@ const norm = (s: string) => (s || '').toLowerCase()
   .replace(/\(.*?\)|\[.*?\]/g, ' ')          // (feat. ...), [Live] 같은 꼬리표는 빼고 비교
   .replace(/[^0-9a-z가-힣ぁ-んァ-ン一-龥]+/g, '');
 const BAD_ALBUM = /karaoke|tribute|instrumental|lullaby|piano version|in the style of|노래방/i;
+// 원곡 대신 리믹스·라이브·모음집이 잡히지 않게 해요
+const ALT_TRACK = /remix|live|acoustic|version|edit\b|demo|\bmix\b|instrumental|sped up|slowed|inst\.|karaoke|mr\b/i;
+const ALT_ALBUM = /remix|live|greatest hits|best of|the hits|singles|collection|anthology|essentials|playlist|now that|\bhits\b|라이브|베스트|콘서트/i;
+const tag = (s: string) => ((s || '').match(/\(([^)]*)\)|\[([^\]]*)\]|\s-\s(.*)$/g) || []).join(' ');
 
-type Hit = { wrapperType?: string; artistId?: number; artistName: string; trackName: string; collectionName: string; artworkUrl100: string; trackTimeMillis?: number };
-type Row = { id: string; title: string; artist_id: string; artist_name: string; artist_ko: string | null; aliases: string[] | null; apple_artist_id: number | null; apple_checked_at: string | null };
+type Hit = { wrapperType?: string; artistId?: number; artistName: string; trackName: string; collectionName: string; artworkUrl100: string; trackTimeMillis?: number; releaseDate?: string };
+type Row = { id: string; title: string; original_artist: string | null; artist_id: string; artist_name: string; artist_ko: string | null; aliases: string[] | null; apple_artist_id: number | null; apple_checked_at: string | null };
 
 let lastCall = 0;
 async function itunes(path: string, params: Record<string, string>): Promise<Hit[]> {
@@ -61,7 +65,7 @@ async function itunes(path: string, params: Record<string, string>): Promise<Hit
 const keysOf = (r: Row) => [...new Set([r.artist_name, r.artist_ko, ...(r.aliases || [])].filter(Boolean).map((n) => norm(n as string)).filter((k) => k.length >= 2))];
 const artistOk = (h: Hit, keys: string[]) => { const a = norm(h.artistName); return keys.some((k) => a.includes(k) || k.includes(a)); };
 
-function titleScore(h: Hit, titleKey: string) {
+function titleScore(h: Hit, titleKey: string, rawTitle: string) {
   const t = norm(h.trackName);
   let score = 0;
   if (t === titleKey) score = 10;
@@ -69,15 +73,18 @@ function titleScore(h: Hit, titleKey: string) {
   else if (titleKey.length >= 4 && (t.includes(titleKey) || titleKey.includes(t))) score = 5;
   if (!score) return 0;
   if (BAD_ALBUM.test(h.collectionName)) score -= 4;
-  if (/live|라이브|콘서트/i.test(h.collectionName) && !/live/i.test(h.trackName)) score -= 1;
+  // 셋리스트 제목에 없는 리믹스·라이브 표시가 곡명 꼬리표에 있으면 크게 깎아요
+  if (ALT_TRACK.test(tag(h.trackName)) && !ALT_TRACK.test(rawTitle)) score -= 4;
+  if (ALT_ALBUM.test(h.collectionName)) score -= 2;
   return score;
 }
-function best(hits: Hit[], titleKey: string, keys: string[] | null) {
+function best(hits: Hit[], titleKey: string, keys: string[] | null, rawTitle = '') {
   let b: Hit | null = null, bs = 0;
   for (const h of hits) {
     if (!h.trackName || (keys && !artistOk(h, keys))) continue;
-    const s = titleScore(h, titleKey);
-    if (s > bs) { b = h; bs = s; }
+    const s = titleScore(h, titleKey, rawTitle);
+    // 점수가 같으면 먼저 나온(원래 발매) 버전을 골라요
+    if (s > bs || (s === bs && b && (h.releaseDate || '9') < (b.releaseDate || '9'))) { b = h; bs = s; }
   }
   return bs >= 5 ? b : null;
 }
@@ -98,7 +105,7 @@ async function resolveArtist(r: Row, keys: string[]): Promise<number | null> {
 async function fill() {
   const started = Date.now();
   const since = new Date(Date.now() - 14 * 86400000).toISOString();
-  const { data, error } = await db.rpc('songs_needing_art_v2', { p_limit: BATCH, p_since: since });
+  const { data, error } = await db.rpc('songs_needing_art_v3', { p_limit: BATCH, p_since: since });
   if (error) throw new Error(error.message);
   const rows = (data || []) as Row[];
 
@@ -134,11 +141,17 @@ async function fill() {
     for (const s of songs) {
       if (Date.now() - started > TIME_BUDGET_MS) break;
       const titleKey = norm(s.title);
-      let hit = titleKey ? best(catalog, titleKey, null) : null;
+      let hit: Hit | null = null;
+      // 커버곡은 원곡 가수 이름으로 찾아요
+      if (s.original_artist && titleKey) {
+        const okeys = [norm(s.original_artist)].filter((k) => k.length >= 2);
+        hit = best(await itunes('search', { term: `${s.original_artist} ${s.title}`, entity: 'song', country: 'US', limit: '25' }), titleKey, okeys, s.title);
+      }
+      if (!hit && titleKey) hit = best(catalog, titleKey, null, s.title);
       // 3) 목록에 없으면 곡 검색 한 번 더 (다른 가수 곡·피처링 곡 등)
       if (!hit && titleKey) {
         const latin = [s.artist_name, ...(s.aliases || [])].find((n) => /[a-z]/i.test(n || '')) || s.artist_name;
-        hit = best(await itunes('search', { term: `${latin} ${s.title}`, entity: 'song', country: /[ぁ-んァ-ン]/.test(s.title) ? 'JP' : 'US', limit: '25' }), titleKey, keys);
+        hit = best(await itunes('search', { term: `${latin} ${s.title}`, entity: 'song', country: /[ぁ-んァ-ン]/.test(s.title) ? 'JP' : 'US', limit: '25' }), titleKey, keys, s.title);
       }
       const patch: Record<string, unknown> = { art_checked_at: new Date().toISOString() };
       if (hit) {

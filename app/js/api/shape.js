@@ -8,6 +8,7 @@ export function shapeSong(s, segs = []) {
     artistId: s.artist_id,
     title: s.title,
     album: s.album || '',
+    originalArtist: s.original_artist || '',
     albumArtUrl: s.album_art_url || '',
     durationSec: s.duration_sec || null,
     spotifyId: s.spotify_id || null,

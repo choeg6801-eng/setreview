@@ -119,7 +119,7 @@ export function songRow(item, o) {
   if (o.state === 'played') badges.push(html`<span class="badge badge-played">불렀어요</span>`);
   if (o.state === 'skipped') badges.push(html`<span class="badge badge-skipped">안 불렀어요</span>`);
   if (o.state === 'now') badges.push(html`<span class="badge badge-now"><span class="dot" aria-hidden="true"></span>지금</span>`);
-  const sub = [song?.album, song?.durationSec ? mmss(song.durationSec) : '', o.time ? o.time : ''].filter(Boolean).join(' · ');
+  const sub = [song?.originalArtist ? `원곡 ${song.originalArtist}` : '', song?.album, song?.durationSec ? mmss(song.durationSec) : '', o.time ? o.time : ''].filter(Boolean).join(' · ');
 
   return html`<li class="song ${open ? 'open' : ''} ${o.state ? 'is-' + o.state : ''}">
     <div class="song-main">

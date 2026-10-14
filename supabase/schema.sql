@@ -764,3 +764,18 @@ as $$
 $$;
 revoke all on function public.songs_needing_art_v2(int, timestamptz) from public, anon, authenticated;
 grant execute on function public.songs_needing_art_v2(int, timestamptz) to service_role;
+
+-- 커버곡의 원곡 가수 (앨범 커버도 원곡 기준으로 찾아요, album-art-fill v3)
+alter table public.songs add column if not exists original_artist text;
+create or replace function public.songs_needing_art_v3(p_limit int, p_since timestamptz)
+returns table (id uuid, title text, original_artist text, artist_id uuid, artist_name text, artist_ko text, aliases text[], apple_artist_id bigint, apple_checked_at timestamptz)
+language sql stable security definer set search_path = ''
+as $$
+  select s.id, s.title, s.original_artist, a.id, a.name, a.name_ko, a.aliases, a.apple_artist_id, a.apple_checked_at
+  from public.songs s join public.artists a on a.id = s.artist_id
+  where coalesce(s.album_art_url, '') = '' and (s.art_checked_at is null or s.art_checked_at < p_since)
+  order by exists (select 1 from public.setlist_items i where i.song_id = s.id) desc, s.art_checked_at nulls first, a.id, s.created_at desc
+  limit p_limit
+$$;
+revoke all on function public.songs_needing_art_v3(int, timestamptz) from public, anon, authenticated;
+grant execute on function public.songs_needing_art_v3(int, timestamptz) to service_role;
