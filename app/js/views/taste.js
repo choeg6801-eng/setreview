@@ -2,7 +2,7 @@
 import { html, toast, fmtDate, UserError } from '../util.js';
 import { emptyState } from '../components.js';
 import { icon } from '../icons.js';
-import { GENRES, artistIndex, seenFrom, recommendArtists, eventPeople, norm } from '../taste.js';
+import { GENRES, artistIndex, seenFrom, recommendArtists, eventPeople, norm, matchEvents } from '../taste.js';
 import { footer } from './footer.js';
 
 export default async function taste(ctx) {
@@ -22,6 +22,9 @@ export default async function taste(ctx) {
   const seen = seenFrom(records, events, idx);
   const favKeys = new Set(t.favorites.map(norm));
   const isFav = (n) => favKeys.has(norm(n)) || (idx.get(norm(n))?.keys || []).some((k) => favKeys.has(k));
+  const upcoming = events.filter((e) => e.status !== 'ended');
+  const matched = matchEvents(events, { favorites: t.favorites, genres: t.genres, seen: seen.artists.map((a) => a.name) }, idx);
+  const hasTaste = t.favorites.length + t.genres.length > 0;
   const recs = recommendArtists({
     favorites: t.favorites, seen: seen.artists.map((a) => a.name), genres: t.genres, events, artists, pairs,
   }, idx, 9);
@@ -48,6 +51,11 @@ export default async function taste(ctx) {
         </div>
         <a class="btn btn-outline" href="#/inbox">${icon('bell', 18)} 알림함${state.unread ? html` <span class="pill pill-accent">${state.unread}</span>` : ''}</a>
       </section>
+
+      ${hasTaste ? html`<div class="card taste-status" role="status">
+        <span>${icon('search', 18)} 지금 다가오는 공연 <strong>${upcoming.length}개</strong>와 비교해서 <strong class="accent">${matched.length}개</strong>가 내 취향에 맞아요.</span>
+        ${matched.length ? html`<a class="btn btn-soft btn-sm" href="#/">홈에서 보기</a>` : html`<span class="faint small">새 공연이 올라오면 바로 비교해서 알림함으로 알려 드려요.</span>`}
+      </div>` : ''}
 
       <div class="taste-grid">
         <section class="card stack">
@@ -98,7 +106,9 @@ export default async function taste(ctx) {
             ${r.genres.length ? html`<div class="row" style="gap:6px">${r.genres.map((g) => html`<span class="pill pill-soft">${g}</span>`)}</div>` : ''}
             ${r.next ? html`<a class="rec-next" href="#/e/${encodeURIComponent(r.next.slug)}">${icon('calendar', 15)} ${fmtDate(r.next.startsAt)} · ${r.next.title}</a>` : ''}
           </article>`)}</div>`
-          : html`<div class="card"><p class="muted">좋아하는 아티스트나 장르를 고르면 비슷한 아티스트를 추천해 드려요.</p></div>`}
+          : html`<div class="card"><p class="muted">${hasTaste
+            ? '아직 비교할 아티스트 정보가 적어서 추천할 아티스트가 없어요. 공연 일정이 쌓이면 같은 무대에 선 아티스트와 같은 장르 아티스트를 추천해 드려요.'
+            : '좋아하는 아티스트나 장르를 고르면 비슷한 아티스트를 추천해 드려요.'}</p></div>`}
       </section>
     </div>
     ${footer()}`,
