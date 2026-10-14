@@ -137,7 +137,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .inline-form .input { flex: 1 1 180px; width: auto; }
 
 /* ---------- 알약 · 뱃지 ---------- */
-.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; font-family: var(--mono); letter-spacing: 0.02em; line-height: 1.4; white-space: nowrap; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px; font-size: 13.5px; font-weight: 700; font-family: var(--font); letter-spacing: 0; line-height: 1.35; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .pill-accent { background: var(--accent); color: var(--ink); }
 .pill-soft { background: var(--card-2); color: var(--text); }
 .pill-muted { background: rgba(238, 237, 251, 0.12); color: var(--muted); }
