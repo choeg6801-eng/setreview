@@ -296,8 +296,8 @@ export const supabaseBackend = {
     if (!authSession?.user) return [];
     const rows = check(await sb.from('notifications').select('id, kind, event_id, reason, created_at, read_at')
       .eq('user_id', authSession.user.id).order('created_at', { ascending: false }).limit(100));
-    const evs = await inQuery('events', 'id', uniq(rows.map((r) => r.event_id)), 'id, slug, title, starts_at, venue, city, cover_url, is_visit, kind');
-    return rows.map((r) => shapeNotification(r, indexBy(evs))).filter((n) => n.event);
+    const evs = await inQuery('events', 'id', uniq(rows.map((r) => r.event_id)), 'id, slug, title, starts_at, venue, city, cover_url, is_visit, kind, published');
+    return rows.map((r) => shapeNotification(r, indexBy(evs.filter((e) => e.published !== false)))).filter((n) => n.event);
   },
   async countUnread() {
     if (!authSession?.user) return 0;
