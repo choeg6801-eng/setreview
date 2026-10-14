@@ -86,7 +86,9 @@ export const supabaseBackend = {
 
     const { createClient } = await import(/* @vite-ignore */ SUPABASE_JS);
     sb = createClient(config.supabaseUrl, config.supabaseAnonKey, {
-      auth: { flowType: 'pkce', persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+      // 메일 로그인 링크는 휴대폰 메일 앱처럼 요청한 곳과 다른 브라우저에서 열려도 로그인되도록 implicit 방식을 써요
+      // (pkce 는 요청한 브라우저에서만 로그인이 끝나서, 휴대폰에서 자주 실패했어요)
+      auth: { flowType: 'implicit', persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
     });
     const { data } = await sb.auth.getSession();
     authSession = data.session;
