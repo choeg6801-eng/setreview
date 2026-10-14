@@ -733,3 +733,19 @@ alter table public.events
   add column if not exists predicted_status text check (predicted_status in ('unavailable')),
   add column if not exists predicted_note text,
   add column if not exists predicted_checked_at timestamptz;
+
+-- 앨범 커버 자동 채우기 (album-art-fill 함수가 iTunes 검색으로 채워요)
+alter table public.songs add column if not exists art_checked_at timestamptz;
+create or replace function public.songs_needing_art(p_limit int, p_since timestamptz)
+returns table (id uuid, title text, artist_name text, artist_ko text, aliases text[])
+language sql stable security definer set search_path = ''
+as $$
+  select s.id, s.title, a.name, a.name_ko, a.aliases
+  from public.songs s join public.artists a on a.id = s.artist_id
+  where coalesce(s.album_art_url, '') = '' and (s.art_checked_at is null or s.art_checked_at < p_since)
+  order by exists (select 1 from public.setlist_items i where i.song_id = s.id) desc, s.art_checked_at nulls first, s.created_at desc
+  limit p_limit
+$$;
+revoke all on function public.songs_needing_art(int, timestamptz) from public, anon, authenticated;
+grant execute on function public.songs_needing_art(int, timestamptz) to service_role;
+-- 20분마다: select cron.schedule('setreview-album-art', '*/20 * * * *', $$select net.http_post(url := '<프로젝트 주소>/functions/v1/album-art-fill', headers := jsonb_build_object('Content-Type','application/json','x-sync-secret',(select decrypted_secret from vault.decrypted_secrets where name='kopis_sync_secret')), body := '{}'::jsonb, timeout_milliseconds := 150000);$$);
