@@ -749,3 +749,18 @@ $$;
 revoke all on function public.songs_needing_art(int, timestamptz) from public, anon, authenticated;
 grant execute on function public.songs_needing_art(int, timestamptz) to service_role;
 -- 20분마다: select cron.schedule('setreview-album-art', '*/20 * * * *', $$select net.http_post(url := '<프로젝트 주소>/functions/v1/album-art-fill', headers := jsonb_build_object('Content-Type','application/json','x-sync-secret',(select decrypted_secret from vault.decrypted_secrets where name='kopis_sync_secret')), body := '{}'::jsonb, timeout_milliseconds := 150000);$$);
+
+-- 앨범 커버: 아티스트별 애플 번호로 한국·미국 스토어 곡 목록을 불러와 맞춰요 (album-art-fill v2)
+alter table public.artists add column if not exists apple_artist_id bigint, add column if not exists apple_checked_at timestamptz;
+create or replace function public.songs_needing_art_v2(p_limit int, p_since timestamptz)
+returns table (id uuid, title text, artist_id uuid, artist_name text, artist_ko text, aliases text[], apple_artist_id bigint, apple_checked_at timestamptz)
+language sql stable security definer set search_path = ''
+as $$
+  select s.id, s.title, a.id, a.name, a.name_ko, a.aliases, a.apple_artist_id, a.apple_checked_at
+  from public.songs s join public.artists a on a.id = s.artist_id
+  where coalesce(s.album_art_url, '') = '' and (s.art_checked_at is null or s.art_checked_at < p_since)
+  order by exists (select 1 from public.setlist_items i where i.song_id = s.id) desc, s.art_checked_at nulls first, a.id, s.created_at desc
+  limit p_limit
+$$;
+revoke all on function public.songs_needing_art_v2(int, timestamptz) from public, anon, authenticated;
+grant execute on function public.songs_needing_art_v2(int, timestamptz) to service_role;

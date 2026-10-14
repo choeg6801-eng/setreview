@@ -1,7 +1,10 @@
 // 셋리스트 곡의 앨범 커버·앨범명·재생 시간을 채워요.
-// 애플 iTunes 검색(공개 검색 기능, 키 필요 없음)으로 "아티스트 + 곡명"을 찾아 가장 잘 맞는 곡의 커버를 써요.
-// 한국 스토어는 검색 결과가 비어서 미국 → 일본 스토어 순서로 찾고, 아티스트는 영문·한글·다른 표기를 모두 시도해요.
-// 30분마다 예약 실행(x-sync-secret) 또는 운영자 로그인 토큰으로 불러요.
+// 애플 iTunes 공개 검색(키 필요 없음)을 써요.
+//  1) 아티스트마다 애플 아티스트 번호를 찾아 두고(artists.apple_artist_id),
+//  2) 그 번호로 한국·미국(일본 곡이면 일본) 스토어의 곡 목록을 한 번에 불러와 제목을 맞춰요.
+//     한국 스토어 목록에는 한글 제목이 그대로 있어서 국내 가수 곡도 찾을 수 있어요.
+//  3) 그래도 못 찾은 곡만 "아티스트 + 곡명" 검색으로 한 번 더 찾아요.
+// 20분마다 예약 실행(x-sync-secret) 또는 운영자 로그인 토큰으로 불러요.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
@@ -29,82 +32,129 @@ async function isAuthorized(req: Request) {
   return p?.role === 'admin';
 }
 
-const BATCH = 40;              // 한 번에 확인할 곡 수 (iTunes 검색은 분당 약 20회까지라 천천히)
-const GAP_MS = 2600;
+const BATCH = 120;             // 한 번에 살펴볼 곡 수 (같은 아티스트 곡은 한꺼번에 처리)
+const TIME_BUDGET_MS = 110_000; // 함수 실행 제한(150초) 안에 끝내요
+const GAP_MS = 2500;            // iTunes 는 분당 약 20회까지라 천천히
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const norm = (s: string) => (s || '').toLowerCase()
   .replace(/\(.*?\)|\[.*?\]/g, ' ')          // (feat. ...), [Live] 같은 꼬리표는 빼고 비교
   .replace(/[^0-9a-z가-힣ぁ-んァ-ン一-龥]+/g, '');
-const BAD_ALBUM = /karaoke|tribute|instrumental|cover|lullaby|piano version|in the style of|노래방/i;
+const BAD_ALBUM = /karaoke|tribute|instrumental|lullaby|piano version|in the style of|노래방/i;
 
-type Hit = { artistName: string; trackName: string; collectionName: string; artworkUrl100: string; trackTimeMillis?: number; releaseDate?: string; collectionType?: string };
+type Hit = { wrapperType?: string; artistId?: number; artistName: string; trackName: string; collectionName: string; artworkUrl100: string; trackTimeMillis?: number };
+type Row = { id: string; title: string; artist_id: string; artist_name: string; artist_ko: string | null; aliases: string[] | null; apple_artist_id: number | null; apple_checked_at: string | null };
 
-async function search(term: string, country: string): Promise<Hit[]> {
-  const url = `https://itunes.apple.com/search?${new URLSearchParams({ term, entity: 'song', country, limit: '25' })}`;
-  for (let attempt = 0; attempt < 2; attempt++) {
+let lastCall = 0;
+async function itunes(path: string, params: Record<string, string>): Promise<Hit[]> {
+  const wait = lastCall + GAP_MS - Date.now();
+  if (wait > 0) await sleep(wait);
+  lastCall = Date.now();
+  const url = `https://itunes.apple.com/${path}?${new URLSearchParams(params)}`;
+  try {
     const res = await fetch(url, { signal: AbortSignal.timeout(12_000) });
-    if (res.status === 403 || res.status === 429) { await sleep(8000); continue; }
     if (!res.ok) return [];
     const data = await res.json().catch(() => ({ results: [] }));
     return (data.results || []) as Hit[];
-  }
-  return [];
+  } catch { return []; }
 }
 
-function pick(hits: Hit[], artistKeys: string[], titleKey: string): Hit | null {
-  let best: Hit | null = null, bestScore = 0;
+const keysOf = (r: Row) => [...new Set([r.artist_name, r.artist_ko, ...(r.aliases || [])].filter(Boolean).map((n) => norm(n as string)).filter((k) => k.length >= 2))];
+const artistOk = (h: Hit, keys: string[]) => { const a = norm(h.artistName); return keys.some((k) => a.includes(k) || k.includes(a)); };
+
+function titleScore(h: Hit, titleKey: string) {
+  const t = norm(h.trackName);
+  let score = 0;
+  if (t === titleKey) score = 10;
+  else if (t.startsWith(titleKey) || titleKey.startsWith(t)) score = 7;
+  else if (titleKey.length >= 4 && (t.includes(titleKey) || titleKey.includes(t))) score = 5;
+  if (!score) return 0;
+  if (BAD_ALBUM.test(h.collectionName)) score -= 4;
+  if (/live|라이브|콘서트/i.test(h.collectionName) && !/live/i.test(h.trackName)) score -= 1;
+  return score;
+}
+function best(hits: Hit[], titleKey: string, keys: string[] | null) {
+  let b: Hit | null = null, bs = 0;
   for (const h of hits) {
-    const a = norm(h.artistName), t = norm(h.trackName);
-    if (!artistKeys.some((k) => a.includes(k) || k.includes(a))) continue;
-    let score = 0;
-    if (t === titleKey) score = 10;
-    else if (t.startsWith(titleKey) || titleKey.startsWith(t)) score = 7;
-    else if (titleKey.length >= 4 && (t.includes(titleKey) || titleKey.includes(t))) score = 5;
-    if (!score) continue;
-    if (BAD_ALBUM.test(h.collectionName)) score -= 4;
-    if (/live|라이브/i.test(h.collectionName) && !/live/i.test(h.trackName)) score -= 1;
-    if (score > bestScore) { best = h; bestScore = score; }
+    if (!h.trackName || (keys && !artistOk(h, keys))) continue;
+    const s = titleScore(h, titleKey);
+    if (s > bs) { b = h; bs = s; }
   }
-  return bestScore >= 5 ? best : null;
+  return bs >= 5 ? b : null;
+}
+
+// 애플 아티스트 번호 찾기 (영문 이름 → 한글 이름 순서, 미국·일본 스토어)
+async function resolveArtist(r: Row, keys: string[]): Promise<number | null> {
+  const names = [r.artist_name, ...(r.aliases || []), r.artist_ko].filter(Boolean) as string[];
+  const latin = names.filter((n) => /[a-z]/i.test(n)).slice(0, 2);
+  const tries: [string, string][] = [...latin.map((n) => [n, 'US'] as [string, string]), [names[0], 'JP']];
+  for (const [term, country] of tries) {
+    const hits = await itunes('search', { term, entity: 'musicArtist', country, limit: '5' });
+    const h = hits.find((x) => artistOk(x, keys) && norm(x.artistName).length >= 2);
+    if (h?.artistId) return h.artistId;
+  }
+  return null;
 }
 
 async function fill() {
-  const since = new Date(Date.now() - 30 * 86400000).toISOString();
-  // 예상·실제 셋리스트에 들어간 곡을 먼저, 그다음 나머지 곡
-  const { data: rows, error } = await db.rpc('songs_needing_art', { p_limit: BATCH, p_since: since });
+  const started = Date.now();
+  const since = new Date(Date.now() - 14 * 86400000).toISOString();
+  const { data, error } = await db.rpc('songs_needing_art_v2', { p_limit: BATCH, p_since: since });
   if (error) throw new Error(error.message);
-  const songs = (rows || []) as { id: string; title: string; artist_name: string; artist_ko: string | null; aliases: string[] | null }[];
+  const rows = (data || []) as Row[];
 
-  let filled = 0;
+  // 아티스트별로 묶어요
+  const groups = new Map<string, Row[]>();
+  for (const r of rows) groups.set(r.artist_id, [...(groups.get(r.artist_id) || []), r]);
+
+  let filled = 0, checked = 0;
   const missed: string[] = [];
-  for (const s of songs) {
-    const names = [s.artist_name, s.artist_ko, ...(s.aliases || [])].filter(Boolean) as string[];
-    const artistKeys = [...new Set(names.map(norm).filter((k) => k.length >= 2))];
-    const titleKey = norm(s.title);
-    let hit: Hit | null = null;
-    const latin = names.filter((n) => /[a-z]/i.test(n));
-    const tries: [string, string][] = [];
-    for (const n of (latin.length ? latin : names).slice(0, 2)) tries.push([`${n} ${s.title}`, 'US']);
-    tries.push([`${names[0]} ${s.title}`, 'JP']);
-    for (const [term, country] of tries) {
-      if (!titleKey) break;
-      hit = pick(await search(term, country), artistKeys, titleKey);
-      await sleep(GAP_MS);
-      if (hit) break;
+  for (const [artistId, songs] of groups) {
+    if (Date.now() - started > TIME_BUDGET_MS) break;
+    const first = songs[0];
+    const keys = keysOf(first);
+
+    // 1) 아티스트 번호
+    let aid = first.apple_artist_id;
+    if (!aid && (!first.apple_checked_at || Date.parse(first.apple_checked_at) < Date.parse(since))) {
+      aid = await resolveArtist(first, keys);
+      await db.from('artists').update({ apple_artist_id: aid, apple_checked_at: new Date().toISOString() }).eq('id', artistId);
     }
-    const patch: Record<string, unknown> = { art_checked_at: new Date().toISOString() };
-    if (hit) {
-      patch.album_art_url = hit.artworkUrl100.replace(/\/\d+x\d+bb\./, '/600x600bb.');
-      patch.album = hit.collectionName?.slice(0, 200) || null;
-      if (hit.trackTimeMillis) patch.duration_sec = Math.round(hit.trackTimeMillis / 1000);
-      filled++;
-    } else {
-      missed.push(`${s.artist_name} - ${s.title}`);
+
+    // 2) 아티스트 곡 목록 (한국 → 미국, 일본어 제목이 있으면 일본도)
+    let catalog: Hit[] = [];
+    if (aid) {
+      const stores = ['KR', 'US'];
+      if (songs.some((s) => /[ぁ-んァ-ン]/.test(s.title))) stores.push('JP');
+      for (const c of stores) {
+        const list = await itunes('lookup', { id: String(aid), entity: 'song', limit: '200', country: c });
+        catalog = catalog.concat(list.filter((h) => h.wrapperType === 'track'));
+      }
     }
-    // 이미 직접 넣은 값은 덮어쓰지 않아요 (album_art_url 이 비어 있는 곡만 골랐어요)
-    await db.from('songs').update(patch).eq('id', s.id).or('album_art_url.is.null,album_art_url.eq.');
+
+    for (const s of songs) {
+      if (Date.now() - started > TIME_BUDGET_MS) break;
+      const titleKey = norm(s.title);
+      let hit = titleKey ? best(catalog, titleKey, null) : null;
+      // 3) 목록에 없으면 곡 검색 한 번 더 (다른 가수 곡·피처링 곡 등)
+      if (!hit && titleKey) {
+        const latin = [s.artist_name, ...(s.aliases || [])].find((n) => /[a-z]/i.test(n || '')) || s.artist_name;
+        hit = best(await itunes('search', { term: `${latin} ${s.title}`, entity: 'song', country: /[ぁ-んァ-ン]/.test(s.title) ? 'JP' : 'US', limit: '25' }), titleKey, keys);
+      }
+      const patch: Record<string, unknown> = { art_checked_at: new Date().toISOString() };
+      if (hit) {
+        patch.album_art_url = hit.artworkUrl100.replace(/\/\d+x\d+bb\./, '/600x600bb.');
+        patch.album = hit.collectionName?.slice(0, 200) || null;
+        if (hit.trackTimeMillis) patch.duration_sec = Math.round(hit.trackTimeMillis / 1000);
+        filled++;
+      } else {
+        missed.push(`${s.artist_name} - ${s.title}`);
+      }
+      checked++;
+      // 이미 직접 넣은 값은 덮어쓰지 않아요
+      await db.from('songs').update(patch).eq('id', s.id).or('album_art_url.is.null,album_art_url.eq.');
+    }
   }
-  return { checked: songs.length, filled, missed: missed.slice(0, 20) };
+  return { checked, filled, artists: groups.size, seconds: Math.round((Date.now() - started) / 1000), missed: missed.slice(0, 20) };
 }
 
 Deno.serve(async (req) => {
