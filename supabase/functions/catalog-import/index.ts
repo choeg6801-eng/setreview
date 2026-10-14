@@ -1,6 +1,6 @@
 // 아티스트별 곡 목록(곡명·앨범·커버·길이)을 애플 iTunes 공개 검색에서 미리 가져와 쌓아 둬요.
 // 예상 셋리스트에 어떤 곡이 들어와도 곡 정보와 앨범 커버가 바로 붙도록 하는 용도예요.
-//  - 한 번에 아티스트 몇 명씩 처리 (예약 실행 30분마다)
+//  - 한 번에 아티스트 몇 명씩 처리 (예약 실행 10분마다)
 //  - 한국 스토어(한글 제목) + 미국 스토어(영문 제목)에서 각각 최대 200곡
 //  - 같은 곡이 여러 앨범에 있으면 가수 본인 정규 앨범 · 먼저 나온 버전을 남기고, 리믹스·라이브·MR·모음집은 빼요
 //  - 이미 있는 곡은 건드리지 않고(커버가 비어 있으면 채움), 새 곡만 넣어요
@@ -45,10 +45,10 @@ const cleanTitle = (s: string) => s
   .replace(/\s+-\s+(\d{4}\s+)?remaster(ed)?(\s+\d{4})?.*$/i, '')
   .replace(/\s*[\(\[](\d{4}\s+)?remaster(ed)?(\s+\d{4})?[\)\]]/gi, '')
   .trim();
-const SKIP_TRACK = /remix|\blive\b|라이브|acoustic|instrumental|\binst\b|\bmr\b|반주|backing track|karaoke|sped up|slowed|nightcore|demo\b|version\)|ver\.\)|\bmix\)|\bmixed\b|edit\)|intro\b|interlude|skit|commentary|voice memo|\s\/\s/i;
+const SKIP_TRACK = /remix|\blive\b|라이브|acoustic|instrumental|\binst\b|\bmr\b|반주|backing track|karaoke|sped up|slowed|nightcore|demo\b|a ?cappella|acapella|extended\)|version\)|ver\.\)|\bmix\)|\bmixed\b|edit\)|intro\b|interlude|skit|commentary|voice memo|\s\/\s/i;
 const SKIP_ALBUM = /karaoke|tribute|instrumental|lullaby|in the style of|노래방|remix|\blive\b|라이브|콘서트|greatest hits|best of|best album|베스트|the hits|collection|anthology|essentials|playlist|now that|dj mix|\bmixed\b|리메이크|remake/i;
 
-type Hit = { wrapperType?: string; kind?: string; trackId?: number; artistId?: number; artistName: string; collectionArtistName?: string; trackName: string; collectionName: string; artworkUrl100: string; trackTimeMillis?: number; releaseDate?: string; collectionType?: string };
+type Hit = { primaryGenreName?: string; wrapperType?: string; kind?: string; trackId?: number; artistId?: number; artistName: string; collectionArtistName?: string; trackName: string; collectionName: string; artworkUrl100: string; trackTimeMillis?: number; releaseDate?: string; collectionType?: string };
 
 let lastCall = 0;
 async function itunes(path: string, params: Record<string, string>): Promise<Hit[]> {
@@ -110,13 +110,18 @@ async function importArtist(a: Artist) {
     const list = await itunes('lookup', { id: String(aid), entity: 'song', limit: '200', country: c });
     for (const h of list) if (h.wrapperType === 'track' && h.kind === 'song') all.push({ ...h, store: c });
   }
+  // 같은 곡은 스토어가 달라도 트랙 번호가 같아요. 한국 스토어에서 이미 본 곡은 미국 스토어 쪽(영문 제목)을 버려요
+  const krIds = new Set(all.filter((h) => h.store === 'KR' && h.trackId).map((h) => h.trackId));
+  for (let i = all.length - 1; i >= 0; i--) if (all[i].store !== 'KR' && krIds.has(all[i].trackId)) all.splice(i, 1);
 
   // 한국 가수인데 한국 스토어 결과가 한글 이름도, 한글 제목도 거의 없으면 동명이인으로 보고 건너뛰어요
   if (isKoreanAct(a)) {
     const kr = all.filter((h) => h.store === 'KR');
     const hangulName = kr.some((h) => HANGUL.test(h.artistName));
     const share = kr.length ? kr.filter((h) => HANGUL.test(h.trackName)).length / kr.length : 0;
-    if (!hangulName && share < 0.15) {
+    // 영어 제목이 많은 K-POP 그룹은 장르(K-Pop·가요)로 확인해요
+    const kGenre = kr.some((h) => /k-?pop|korean|가요|케이팝/i.test(h.primaryGenreName || ''));
+    if (!hangulName && share < 0.15 && !kGenre) {
       await db.from('artists').update({ apple_artist_id: null, apple_checked_at: new Date().toISOString(), catalog_synced_at: new Date().toISOString(), catalog_song_count: 0 }).eq('id', a.id);
       return { artist: a.name, added: 0, note: '동명이인으로 보여 건너뜀' };
     }
