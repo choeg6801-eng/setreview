@@ -511,4 +511,4 @@ a.bar-col:hover .bar-l { color: var(--text); }
   .topbar-right .bell { width: 38px; height: 38px; }
 }
 .taste-status { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
-.taste-status > span:first-child { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.taste-status > span:first-child { display: inline-flex; align-items: center; gap: 8px; }

@@ -53,7 +53,7 @@ export default async function taste(ctx) {
       </section>
 
       ${hasTaste ? html`<div class="card taste-status" role="status">
-        <span>${icon('search', 18)} 지금 다가오는 공연 <strong>${upcoming.length}개</strong>와 비교해서 <strong class="accent">${matched.length}개</strong>가 내 취향에 맞아요.</span>
+        <span>${icon('search', 18)}<span>지금 다가오는 공연 <strong>${upcoming.length}개</strong>와 비교해서 <strong class="accent">${matched.length}개</strong>가 내 취향에 맞아요.</span></span>
         ${matched.length ? html`<a class="btn btn-soft btn-sm" href="#/">홈에서 보기</a>` : html`<span class="faint small">새 공연이 올라오면 바로 비교해서 알림함으로 알려 드려요.</span>`}
       </div>` : ''}
 
