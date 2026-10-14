@@ -49,7 +49,7 @@ export default async function admin(ctx) {
     <div class="admin-main">${body}</div>
   </div>`;
 
-  const view = await TAB_VIEWS[tab]({ ...ctx, reports, pending, subs, drafts, tab, id: params.id, query });
+  const view = await TAB_VIEWS[tab]({ ...ctx, reports, pending, subs, drafts, allEvents, tab, id: params.id, query });
   return {
     title: `운영 · ${view.title}`,
     html: shell(view.title, view.html),
@@ -60,17 +60,19 @@ export default async function admin(ctx) {
   };
 }
 
-// 모든 공연 + 상세 (공연/라이브 탭에서 사용)
-async function loadEventsWithDetail(api) {
-  const events = await api.listEvents({ includeUnpublished: true });
+// 라이브 진행용: 지금 진행 중이거나 어제~3일 뒤 공연만 상세까지 불러와요 (공연이 많아져도 빠르게)
+async function loadEventsWithDetail(api, all) {
+  const list = all || await api.listEvents({ includeUnpublished: true });
+  const now = Date.now(), DAY = 86400000;
+  const events = list.filter((e) => e.status === 'live' || (Date.parse(e.endsAt || e.startsAt) > now - DAY && Date.parse(e.startsAt) < now + 3 * DAY));
   const details = await Promise.all(events.map((e) => api.getEventBySlug(e.slug)));
   return events.map((e, i) => ({ ...e, detail: details[i] }));
 }
 
 const TAB_VIEWS = {
   // ============================================================ 라이브 진행
-  async live({ api, query, pending, rerender }) {
-    const events = (await loadEventsWithDetail(api)).sort((a, b) => {
+  async live({ api, query, pending, rerender, allEvents }) {
+    const events = (await loadEventsWithDetail(api, allEvents)).sort((a, b) => {
       const o = { live: 0, upcoming: 1, ended: 2 };
       return o[a.status] - o[b.status] || a.startsAt.localeCompare(b.startsAt);
     });
@@ -160,7 +162,7 @@ const TAB_VIEWS = {
             ${perfs.map((p) => html`<option value="${p.id}" ${sel?.id === p.id ? 'selected' : ''}>${p.status === 'live' ? '● ' : ''}${p.artist.name} — ${p.event.title} (${fmtDate(p.startsAt || p.event.startsAt)})</option>`)}
           </select>
         </div>
-        ${perfs.length ? body : emptyState('등록된 무대가 없어요', '공연 탭에서 공연과 출연 아티스트를 먼저 등록해 주세요.', html`<a class="btn btn-primary" href="#/admin/events">공연 등록하기</a>`)}`,
+        ${perfs.length ? body : emptyState('오늘 전후로 진행할 무대가 없어요', '어제부터 3일 뒤까지의 공연 중 출연 아티스트가 등록된 무대가 여기에 나와요. 공연 탭에서 공연과 출연 아티스트를 등록해 주세요.', html`<a class="btn btn-primary" href="#/admin/events">공연 등록하기</a>`)}`,
       changes: {
         'pick-perf'(el) { navigate('/admin/live', { perf: el.value }); },
       },
@@ -277,7 +279,7 @@ const TAB_VIEWS = {
   async events(ctx) {
     const { api, id, query, rerender } = ctx;
     if (id) return eventEditor(ctx);
-    const all = await api.listEvents({ includeUnpublished: true });
+    const all = ctx.allEvents || await api.listEvents({ includeUnpublished: true });
     const scope = ['upcoming', 'past', 'drafts'].includes(query.show) ? query.show : 'upcoming';
     const isPast = (e) => e.status === 'ended';
     const lists = {

@@ -571,3 +571,8 @@ a.bar-col:hover .bar-l { color: var(--text); }
 .setlist-chip.ok { color: var(--ok); border-color: rgba(123, 224, 168, 0.4); }
 .setlist-chip.wait { color: var(--peach); border-style: dashed; }
 .setlist-chip.none { color: var(--faint); font-weight: 500; }
+
+/* 화면 불러오는 중: 맨 위 진행 막대 */
+body.is-loading::before { content: ""; position: fixed; top: 0; left: 0; height: 3px; width: 40%; z-index: 9999; background: var(--accent, #ff7a59); animation: page-load 1s ease-in-out infinite; }
+@keyframes page-load { 0% { transform: translateX(-100%); } 100% { transform: translateX(250%); } }
+@media (prefers-reduced-motion: reduce) { body.is-loading::before { animation: none; width: 100%; opacity: .6; } }

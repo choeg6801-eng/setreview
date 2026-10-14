@@ -56,6 +56,7 @@ async function render({ keepScroll = false } = {}) {
   const my = ++seq;
   const y = window.scrollY;
   let view;
+  const slow = setTimeout(() => { if (my === seq) document.body.classList.add('is-loading'); }, 150);
   try {
     if (!m) {
       view = {
@@ -70,7 +71,9 @@ async function render({ keepScroll = false } = {}) {
     console.error(e);
     view = errorView(e);
   }
+  clearTimeout(slow);
   if (my !== seq) return; // 더 최신 화면 요청이 있으면 버려요
+  document.body.classList.remove('is-loading');
 
   try { cleanup?.(); } catch { /* 무시 */ }
   cleanup = null;
