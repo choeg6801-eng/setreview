@@ -110,7 +110,7 @@ async function listAll(path: string) {
 const FEST_RE = /페스티벌|festival|페스타|fest\b|뮤직\s*페스|록\s*페|락\s*페|썸머\s*소닉|summer\s*sonic|워터밤|waterbomb|펜타포트|pentaport/i;
 const VISIT_RE = /내한|live\s+in\s+(seoul|korea|busan|incheon)|in\s+seoul|in\s+korea|asia\s+tour|world\s+tour|\btour\b/i;
 const LATIN_RE = /^[\x20-\x7E·:–—'’"“”()\[\]&!?.,\-]+$/;
-const SKIP_RE = /패키지|package|숙박|호텔|투어\s*상품/i;
+const SKIP_RE = /패키지|package|숙박|호텔|투어\s*상품|meet\s*&\s*greet|meet and greet|밋앤그릿|밋\s*앤\s*그릿|팬\s*사인회|하이터치/i;
 const dayOf = (dot: string) => Date.parse(dot.replace(/\./g, '-'));
 // 패키지 상품이나 기간이 비정상적으로 긴(120일 넘는) 등록은 빼요
 const isJunk = (it: Item) => SKIP_RE.test(it.title) || (it.to && dayOf(it.to) - dayOf(it.from) > 120 * 86400000);

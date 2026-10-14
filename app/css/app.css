@@ -328,7 +328,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .admin-nav .count { margin-left: auto; font-family: var(--mono); font-size: 12px; background: var(--accent); color: var(--ink); border-radius: 999px; padding: 1px 8px; }
 .admin-main { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
 .admin-main h1 { font-size: 26px; font-weight: 900; }
-.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); }
+.table-wrap { position: relative; overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); }
 .table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 560px; }
 .table th, .table td { padding: 12px 14px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
 .table th { color: var(--muted); font-weight: 500; font-size: 13px; background: rgba(10, 12, 36, 0.3); }
@@ -367,7 +367,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 /* ---------- 반응형 ---------- */
 @media (max-width: 900px) {
-  .admin-layout { grid-template-columns: 1fr; }
+  .admin-layout { grid-template-columns: minmax(0, 1fr); }
   .admin-nav { position: static; flex-direction: row; overflow-x: auto; gap: 6px; padding-bottom: 4px; }
   .admin-nav a { white-space: nowrap; }
   .recap-layout { grid-template-columns: 1fr; }
