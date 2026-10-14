@@ -858,3 +858,6 @@ begin
   get diagnostics n2 = row_count;
   return n1 + n2;
 end $$;
+
+-- 내한 공연 안내 문구 (예: 첫 내한, 4년 만의 내한) — 공연 카드·상세 화면의 '내한' 배지에 보여요
+alter table public.events add column if not exists visit_note text check (char_length(visit_note) <= 40);

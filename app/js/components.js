@@ -35,7 +35,7 @@ export function eventCard(ev, { followed = false, showFollow = true, note = '' }
       ${ev.coverUrl && ev.source !== 'manual'
         ? html`<img class="poster-bg" src="${ev.coverUrl}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" aria-hidden="true"><img class="poster" src="${ev.coverUrl}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">`
         : ev.coverUrl ? html`<img src="${ev.coverUrl}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : html`<span class="cover-fallback" aria-hidden="true"></span>`}
-      <span class="event-cover-top">${statusPill(ev)}<span class="pill pill-glass">${KIND_LABEL[ev.kind] || ''}</span>${ev.isVisit ? html`<span class="pill pill-visit">내한</span>` : ''}</span>
+      <span class="event-cover-top">${statusPill(ev)}<span class="pill pill-glass">${KIND_LABEL[ev.kind] || ''}</span>${ev.isVisit ? html`<span class="pill pill-visit">${ev.visitNote || '내한'}</span>` : ''}</span>
     </a>
     <div class="event-body">
       ${note ? html`<p class="event-note">${note}</p>` : ''}

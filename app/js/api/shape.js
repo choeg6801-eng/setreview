@@ -56,6 +56,7 @@ export function shapeEventSummary(ev, perfs, artistsById, now = Date.now()) {
     description: ev.description || '',
     published: ev.published !== false,
     isVisit: !!ev.is_visit,
+    visitNote: ev.visit_note || '',
     lineup: ev.lineup || '',
     ticketOpenAt: ev.ticket_open_at || null,
     sourceUrl: /^https?:\/\//i.test(ev.source_url || '') ? ev.source_url : '',

@@ -132,14 +132,20 @@ export default async function eventView(ctx) {
     </section>`;
   }
 
+  // 예매처 포스터는 잘리지 않게 그대로 보여 주고, 뒤 배경은 흐리게 깔아요
+  const isPoster = !!ev.coverUrl && ev.source !== 'manual';
+
   return {
     title: ev.title,
     html: html`
-      <section class="ev-hero">
+      <section class="ev-hero ${isPoster ? 'has-poster' : ''}">
         ${ev.coverUrl ? html`<img class="bg" src="${ev.coverUrl}" alt="" referrerpolicy="no-referrer">` : ''}
         <div class="container">
           ${backLink('#/', '공연 목록')}
-          <div class="row">${statusPill(ev)}<span class="pill pill-glass">${KIND_LABEL[ev.kind] || ''}</span>${ev.isVisit ? html`<span class="pill pill-visit">내한</span>` : ''}</div>
+          <div class="ev-head">
+          ${isPoster ? html`<a class="ev-poster" href="${ev.coverUrl}" target="_blank" rel="noopener" aria-label="포스터 크게 보기"><img src="${ev.coverUrl}" alt="${ev.title} 포스터" referrerpolicy="no-referrer"></a>` : ''}
+          <div class="ev-main">
+          <div class="row">${statusPill(ev)}<span class="pill pill-glass">${KIND_LABEL[ev.kind] || ''}</span>${ev.isVisit ? html`<span class="pill pill-visit">${ev.visitNote || '내한'}</span>` : ''}</div>
           <h1>${ev.title}</h1>
           <div class="ev-facts">
             <span>${icon('calendar', 16)} ${fmtDate(ev.startsAt)} ${fmtTime(ev.startsAt)}${ev.status === 'upcoming' ? ` · ${dday(ev.startsAt)}` : ''}</span>
@@ -162,6 +168,8 @@ export default async function eventView(ctx) {
             <span class="mono small accent">${loggedIn ? `${done} / ${allPredicted.length}곡` : ''}</span>
             ${loggedIn ? progressBar(done, allPredicted.length) : ''}
           </div>` : ''}
+          </div>
+          </div>
         </div>
       </section>
       <div class="container">
