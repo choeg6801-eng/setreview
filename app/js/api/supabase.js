@@ -29,7 +29,7 @@ function emailAuthError(error) {
   const msg = `${error?.code || ''} ${error?.message || ''}`;
   if (error?.status === 429 || /rate limit|over_email_send_rate|security purposes/i.test(msg)) {
     const sec = msg.match(/after (\d+) seconds?/i)?.[1];
-    return new UserError(sec ? `방금 메일을 보냈어요. ${sec}초 뒤에 다시 보낼 수 있어요. 받은 메일의 6자리 코드를 넣어 주세요.` : '메일을 너무 자주 보냈어요. 잠시 후 다시 시도해 주세요.');
+    return new UserError(sec ? `방금 메일을 보냈어요. ${sec}초 뒤에 다시 보낼 수 있어요. 받은 메일의 6자리 코드를 넣어 주세요.` : '지금은 로그인 메일을 더 보낼 수 없어요(시간당 발송 한도). 1시간 안에 받은 셋리뷰 메일이 있으면 가장 최근 메일의 6자리 코드를 넣어 주세요.');
   }
   if (/otp_expired|expired|invalid/i.test(msg)) return new UserError('코드가 맞지 않거나 만료됐어요. 메일을 다시 받아 주세요.');
   if (/email_address_invalid|invalid.*email/i.test(msg)) return new UserError('이메일 주소를 확인해 주세요.');

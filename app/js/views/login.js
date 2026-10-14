@@ -83,6 +83,7 @@ export default async function login(ctx) {
               </div>
               <button type="submit" class="btn btn-primary btn-block">로그인 메일 받기</button>
             </form>
+            <p class="faint small">이미 받은 메일이 있나요? <button type="button" class="link-btn" data-action="have-code">받은 코드 넣기</button></p>
           `) : ''}
           ${oauth.length && useEmail && !pending ? html`<div class="or-divider"><span>또는</span></div>` : ''}
           ${pending ? '' : oauth.map((p) => html`
@@ -101,7 +102,7 @@ export default async function login(ctx) {
           toast('로그인 메일을 보냈어요.', 'ok');
         } catch (e) {
           // 이미 보낸 메일이 있으면 그 메일의 코드로 로그인하면 돼요
-          if (!/방금 메일을 보냈어요/.test(e?.message || '')) throw e;
+          if (!/방금 메일을 보냈어요|더 보낼 수 없어요/.test(e?.message || '')) throw e;
           toast(e.message);
         }
         setPending(email);
@@ -122,6 +123,13 @@ export default async function login(ctx) {
       async resend() {
         await api.sendEmailLogin(pending);
         toast('메일을 다시 보냈어요.', 'ok');
+      },
+      'have-code'() {
+        const email = String(document.getElementById('login-email')?.value || '').trim().toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new UserError('먼저 메일을 받은 이메일 주소를 적어 주세요.');
+        setPending(email);
+        ctx.rerender();
+        setTimeout(() => document.getElementById('login-code')?.focus(), 50);
       },
       'change-email'() {
         setPending('');
