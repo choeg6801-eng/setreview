@@ -113,7 +113,9 @@ const LATIN_RE = /^[\x20-\x7E·:–—'’"“”()\[\]&!?.,\-]+$/;
 const SKIP_RE = /패키지|package|숙박|호텔|투어\s*상품|meet\s*&\s*greet|meet and greet|밋앤그릿|밋\s*앤\s*그릿|팬\s*사인회|하이터치/i;
 const dayOf = (dot: string) => Date.parse(dot.replace(/\./g, '-'));
 // 패키지 상품이나 기간이 비정상적으로 긴(120일 넘는) 등록은 빼요
-const isJunk = (it: Item) => SKIP_RE.test(it.title) || (it.to && dayOf(it.to) - dayOf(it.from) > 120 * 86400000);
+// 해외에서 열리는 공연(지역 '해외', 제목의 [일본 오키나와] 같은 표기)도 빼요 — 셋리뷰는 국내 공연만 다뤄요
+const ABROAD_RE = /\[(일본|대만|중국|홍콩|태국|싱가포르|미국|영국|베트남|필리핀|인도네시아|말레이시아)[^\]]*\]/;
+const isJunk = (it: Item) => SKIP_RE.test(it.title) || it.area === '해외' || ABROAD_RE.test(it.title) || (it.to && dayOf(it.to) - dayOf(it.from) > 120 * 86400000);
 const isCandidate = (it: Item, fest: Set<string>) =>
   !isJunk(it) && (fest.has(it.id) || FEST_RE.test(it.title) || VISIT_RE.test(it.title) || LATIN_RE.test(it.title));
 const normName = (s: string) => (s || '').toLowerCase().replace(/[^0-9a-z가-힣]/g, '');
