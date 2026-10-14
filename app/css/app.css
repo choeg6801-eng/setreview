@@ -151,7 +151,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .badge-must { background: var(--accent); color: var(--ink); }
 .badge-chant { background: var(--peach); color: var(--ink); }
 .badge-encore { background: var(--text); color: var(--ink); }
-.badge-cover { background: transparent; border: 1px solid var(--line); color: var(--muted, var(--text)); }
+.song-orig { display: flex; align-items: center; gap: 6px; font-size: 13.5px; color: var(--peach); margin-top: 2px; }
+.song-orig strong { font-weight: 700; }
+.cover-tag { display: inline-flex; align-items: center; padding: 1px 7px; border-radius: 6px; background: var(--peach); color: var(--ink); font-size: 12px; font-weight: 800; line-height: 1.5; }
 .badge-surprise { background: transparent; border: 1px solid var(--peach); color: var(--peach); }
 .badge-played { background: rgba(123, 224, 168, 0.14); color: var(--ok); }
 .badge-skipped { background: rgba(238, 237, 251, 0.08); color: var(--faint); }
