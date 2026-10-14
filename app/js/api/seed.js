@@ -126,6 +126,7 @@ export function buildDemoDb(now = Date.now()) {
     progress: [],
     reports: [],
     waitlist: [],
+    attendances: [],
   };
   let n = 0;
   const id = (p) => `${p}-${(++n).toString(36)}`;
@@ -143,6 +144,7 @@ export function buildDemoDb(now = Date.now()) {
       id: e.id, slug: e.slug, title: e.title, kind: e.kind, venue: e.venue, city: e.city,
       starts_at: resolveWhen(e.starts, now), ends_at: resolveWhen(e.ends, now),
       cover_url: e.cover, description: e.description, published: true,
+      is_visit: e.title.includes('내한'), source: 'manual', ticket_url: null,
     });
     e.performances.forEach((p, sort) => {
       db.performances.push({
@@ -162,5 +164,52 @@ export function buildDemoDb(now = Date.now()) {
       });
     });
   }
+  db.attendances = demoAttendances(db);
+  Object.assign(db, demoTasteData(db));
   return db;
+}
+
+// 데모용 취향 데이터: 아티스트 장르 · 공연 장르/출연진 · 함께 좋아하는 아티스트 · 데모 계정 취향
+export function demoTasteData(db) {
+  const info = {
+    'Bruno Mars': { name_ko: '브루노 마스', aliases: [], genres: ['팝', 'R&B'] },
+    'Maroon 5': { name_ko: '마룬 파이브', aliases: ['Maroon5', '마룬5'], genres: ['팝', '록'] },
+  };
+  for (const a of db.artists) Object.assign(a, { name_ko: null, aliases: [], genres: [] }, info[a.name] || {});
+  // 장르 추천 예시용 가상 아티스트
+  for (const [name, genres] of [['선셋 오케스트라', ['인디', '록']], ['네온 웨이브', ['일렉트로닉', '팝']], ['미드나잇 소울', ['R&B', '팝']], ['데모 밴드', ['록']],
+    ['스칼렛 리프', ['록', '메탈']], ['블루 아워 트리오', ['재즈']], ['오로라 포크', ['포크·어쿠스틱', '인디']], ['시티 라이츠', ['팝', 'R&B']]]) {
+    if (!db.artists.some((a) => a.name === name)) db.artists.push({ id: `a-${name}`, name, slug: `demo-${db.artists.length}`, name_ko: null, aliases: [], genres });
+  }
+  for (const e of db.events) {
+    e.genres = e.kind === 'festival' ? ['록', '팝'] : [];
+    e.lineup = e.kind === 'festival' ? 'Bruno Mars, Maroon 5, 선셋 오케스트라, 스칼렛 리프, 데모 밴드 외 12팀' : null;
+  }
+  return {
+    favorites: [{ user_id: 'u-demo', name: 'Maroon 5', created_at: new Date().toISOString() }],
+    user_genres: [{ user_id: 'u-demo', genre: '록' }],
+    notifications: [],
+    artist_pairs: [{ a: 'Maroon 5', b: '시티 라이츠', users: 4 }, { a: 'Bruno Mars', b: '미드나잇 소울', users: 3 }, { a: 'Maroon 5', b: '오로라 포크', users: 2 }],
+  };
+}
+
+// 데모 계정의 지난 공연 기록 (연도별 화면 예시)
+export function demoAttendances(db) {
+  const past = db.events.find((e) => e.id === 'e-bruno-past');
+  const rows = [
+    past && { event_id: past.id, title: past.title, artist: 'Bruno Mars', kind: 'concert', is_visit: true, venue: past.venue, city: past.city,
+      attended_on: new Date(new Date(past.starts_at).getTime() + 9 * 3600000).toISOString().slice(0, 10), rating: 5, memo: '깜짝 커버곡에서 소리 질렀다' },
+    { title: '여름 록 페스티벌 (예시)', artist: '선셋 오케스트라, 데모 밴드 외 28팀', kind: 'festival', venue: '달빛공원', city: '인천', attended_on: '2026-08-02', rating: 5, memo: '비 맞으면서 떼창한 날' },
+    { title: '봄 재즈 페스티벌 (예시)', artist: '미드나잇 소울', kind: 'festival', venue: '자라섬', city: '가평', attended_on: '2026-05-17', rating: 4 },
+    { title: 'Maroon 5 내한 공연 (예시)', artist: 'Maroon 5', kind: 'concert', is_visit: true, venue: '고척스카이돔', city: '서울', attended_on: '2026-03-08', rating: 5, memo: 'She Will Be Loved 떼창 최고' },
+    { title: '인디 밴드 단독 공연 (예시)', artist: '인디 밴드', kind: 'concert', venue: '롤링홀', city: '서울', attended_on: '2025-11-22', rating: 4 },
+    { title: '여름 록 페스티벌 2025 (예시)', artist: '선셋 오케스트라 외 27팀', kind: 'festival', venue: '달빛공원', city: '인천', attended_on: '2025-08-03', rating: 5 },
+    { title: '해외 밴드 내한 공연 (예시)', artist: '해외 밴드', kind: 'concert', is_visit: true, venue: '올림픽홀', city: '서울', attended_on: '2025-06-14', rating: 4 },
+    { title: '가을 뮤직 페스티벌 (예시)', artist: '네온 웨이브, 인디 밴드', kind: 'festival', venue: '올림픽공원', city: '서울', attended_on: '2024-10-19', rating: 4 },
+    { title: '팝 가수 내한 공연 (예시)', artist: '팝 가수', kind: 'concert', is_visit: true, venue: 'KSPO DOME', city: '서울', attended_on: '2024-04-27', rating: 3 },
+  ].filter(Boolean);
+  return rows.map((r, i) => ({
+    id: `att-demo-${i + 1}`, user_id: 'u-demo', event_id: null, is_visit: false, rating: null, memo: null,
+    created_at: new Date().toISOString(), ...r,
+  }));
 }

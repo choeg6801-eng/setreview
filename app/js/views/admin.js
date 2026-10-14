@@ -4,6 +4,7 @@ import { art, emptyState, statusPill, KIND_LABEL } from '../components.js';
 import { icon } from '../icons.js';
 import { isDemo, config } from '../config.js';
 import { navigate } from '../router.js';
+import { GENRES } from '../taste.js';
 
 const TABS = [
   { id: 'live', label: '라이브 진행', icon: 'live' },
@@ -234,6 +235,7 @@ const TAB_VIEWS = {
     const artists = await api.adminListArtists();
     const artistId = query.artist && artists.some((a) => a.id === query.artist) ? query.artist : artists[0]?.id;
     const songs = artistId ? await api.adminListSongs(artistId) : [];
+    const cur = artists.find((a) => a.id === artistId);
     return {
       title: '곡 · 떼창 구간',
       html: html`
@@ -254,6 +256,18 @@ const TAB_VIEWS = {
             </form>
           </div>
         </div>
+        ${cur ? html`<form class="card stack" data-form="artist-info">
+          <h2>아티스트 정보 <span class="faint small">맞춤 공연 · 추천에 쓰여요</span></h2>
+          <div class="form-grid">
+            <div class="field"><label for="ai-name">이름</label><input id="ai-name" class="input" name="name" value="${cur.name}" required></div>
+            <div class="field"><label for="ai-ko">한글 이름</label><input id="ai-ko" class="input" name="nameKo" value="${cur.name_ko || ''}" placeholder="예: 브루노 마스"></div>
+            <div class="field"><label for="ai-alias">다른 이름</label><input id="ai-alias" class="input" name="aliases" value="${(cur.aliases || []).join(', ')}" placeholder="쉼표로 나눠 주세요. 예: Maroon5, 마룬5"></div>
+          </div>
+          <fieldset class="field"><legend class="label">장르</legend><div class="tchips">
+            ${GENRES.map((g) => html`<label class="tchip check-chip"><input type="checkbox" name="genres" value="${g}" ${(cur.genres || []).includes(g) ? 'checked' : ''}> ${g}</label>`)}
+          </div></fieldset>
+          <button class="btn btn-outline" type="submit" style="align-self:flex-start">아티스트 정보 저장</button>
+        </form>` : ''}
         ${songs.length ? html`<div class="table-wrap"><table class="table">
           <thead><tr><th>곡</th><th>길이</th><th>하이라이트</th><th>떼창 지수</th><th><span class="sr-only">관리</span></th></tr></thead>
           <tbody>${songs.map((s) => {
@@ -274,6 +288,15 @@ const TAB_VIEWS = {
           const newId = await api.adminUpsertArtist({ name: fd.get('name') });
           toast('아티스트를 추가했어요.', 'ok');
           navigate('/admin/songs', { artist: newId });
+        },
+        async 'artist-info'(fd) {
+          await api.adminUpsertArtistInfo({
+            id: cur.id, name: fd.get('name'), nameKo: fd.get('nameKo'),
+            aliases: String(fd.get('aliases') || '').split(',').map((x) => x.trim()).filter(Boolean).slice(0, 10),
+            genres: fd.getAll('genres'),
+          });
+          toast('아티스트 정보를 저장했어요.', 'ok');
+          ctx.rerender();
         },
       },
     };
@@ -389,6 +412,7 @@ const TAB_VIEWS = {
   // ============================================================ 설정
   async settings({ api, state, rerender }) {
     const s = await api.getSettings();
+    const sync = await api.getSyncStatus().catch(() => null);
     const ok = (v) => (v ? html`<span class="pill pill-ok">연결됨</span>` : html`<span class="pill pill-muted">설정 안 됨</span>`);
     return {
       title: '설정',
@@ -398,6 +422,23 @@ const TAB_VIEWS = {
           <h2>무료 베타</h2>
           <p class="muted small">켜 두면 로그인하지 않은 사람까지 모두 멤버십 기능(하이라이트·떼창 구간, 무제한 담기, Spotify 저장)을 쓸 수 있어요. 결제를 열 때 꺼 주세요.</p>
           <label class="check"><input type="checkbox" data-change="free-beta" ${s.freeBeta ? 'checked' : ''}> 무료 베타 켜기</label>
+        </div>
+        <div class="card stack">
+          <h2>공연 일정 자동 수집 (KOPIS)</h2>
+          <p class="muted small">매일 오전 5시 10분에 KOPIS(공연예술통합전산망)에서 앞으로 1년 동안의 대중음악 공연을 확인하고, <strong>페스티벌</strong>과 <strong>내한 공연</strong>만 골라 공연 목록에 넣어요. 이미 있는 공연은 날짜·장소·포스터만 고쳐요.</p>
+          ${isDemo ? html`<p class="small"><span class="pill pill-accent">데모 모드</span> Supabase 에 연결하면 동작해요.</p>`
+            : !sync ? html`<p class="small"><span class="pill pill-muted">아직 실행 전</span></p>`
+            : sync.error ? html`<p class="small"><span class="pill pill-danger">실패</span> ${fmtDateTime(sync.at)} · ${sync.error}</p>
+                ${/KOPIS_API_KEY/.test(sync.error) ? html`<p class="small muted">KOPIS 인증키를 Supabase → Edge Functions → Secrets 에 <code>KOPIS_API_KEY</code> 이름으로 넣어 주세요. 방법은 docs/SETUP.md 의 "공연 일정 자동 수집" 에 있어요.</p>` : ''}`
+            : html`<dl class="kv">
+                <dt>마지막 실행</dt><dd>${fmtDateTime(sync.at)} <span class="faint small">(${sync.seconds}초)</span></dd>
+                <dt>새로 추가</dt><dd>${sync.inserted}개</dd>
+                <dt>일정 갱신</dt><dd>${sync.updated}개</dd>
+                <dt>확인한 공연</dt><dd>${sync.listed}개 중 후보 ${sync.candidates}개${sync.deferred ? html` · <span class="faint">${sync.deferred}개는 다음 실행 때 확인</span>` : ''}</dd>
+              </dl>
+              ${sync.errors?.length ? html`<p class="faint small">일부 실패: ${sync.errors.slice(0, 3).join(' / ')}</p>` : ''}`}
+          ${!isDemo ? html`<button type="button" class="btn btn-outline" data-action="kopis-sync" style="align-self:flex-start">${icon('download', 18)} 지금 가져오기</button>
+            <p class="faint small">처음 실행은 1~2분 걸릴 수 있어요.</p>` : ''}
         </div>
         <div class="card stack">
           <h2>연결 상태</h2>
@@ -424,6 +465,12 @@ const TAB_VIEWS = {
         },
       },
       actions: {
+        async 'kopis-sync'() {
+          toast('KOPIS 에서 공연 일정을 가져오고 있어요. 1~2분 걸릴 수 있어요.');
+          const r = await api.runKopisSync();
+          toast(`새 공연 ${r.inserted}개를 추가하고 ${r.updated}개를 갱신했어요.`, 'ok');
+          rerender();
+        },
         async reset() {
           if (!confirm('데모 데이터를 처음 상태로 되돌릴까요?')) return;
           await api.resetDemo();
@@ -464,8 +511,15 @@ async function eventEditor({ api, id, query, rerender }) {
       <div class="field"><label for="ev-venue">공연장</label><input id="ev-venue" class="input" name="venue" value="${v.venue || ''}"></div>
       <div class="field"><label for="ev-cover">대표 이미지 주소</label><input id="ev-cover" class="input" name="cover" value="${v.coverUrl || ''}" list="cover-list" placeholder="/assets/img/hero.jpg 또는 https://...">
         <datalist id="cover-list">${COVERS.map((c) => html`<option value="${c}"></option>`)}</datalist></div>
+      <div class="field"><label for="ev-ticket">예매 페이지 주소</label><input id="ev-ticket" class="input" name="ticket" type="url" value="${v.ticketUrl || ''}" placeholder="https://..."></div>
     </div>
+    ${v.source === 'kopis' ? html`<p class="faint small">KOPIS 에서 자동으로 가져온 공연이에요. 날짜·장소·포스터는 매일 KOPIS 기준으로 다시 맞춰져요.</p>` : ''}
     <div class="field"><label for="ev-desc">소개</label><textarea id="ev-desc" class="textarea" name="description">${v.description || ''}</textarea></div>
+    <div class="field"><label for="ev-lineup">출연진</label><textarea id="ev-lineup" class="textarea" name="lineup" rows="2" placeholder="쉼표로 나눠 주세요. 맞춤 알림과 추천에 쓰여요.">${v.lineup || ''}</textarea></div>
+    <fieldset class="field"><legend class="label">장르</legend><div class="tchips">
+      ${GENRES.map((g) => html`<label class="tchip check-chip"><input type="checkbox" name="genres" value="${g}" ${(v.genres || []).includes(g) ? 'checked' : ''}> ${g}</label>`)}
+    </div></fieldset>
+    <label class="check"><input type="checkbox" name="isVisit" ${v.isVisit ? 'checked' : ''}> 해외 아티스트 내한 공연</label>
     <label class="check"><input type="checkbox" name="published" ${v.published !== false ? 'checked' : ''}> 사용자에게 공개</label>
     <div class="row">
       <button class="btn btn-primary" type="submit">${isNew ? '공연 만들기' : '저장'}</button>
@@ -551,6 +605,8 @@ async function eventEditor({ api, id, query, rerender }) {
           city: String(fd.get('city') || '').trim(), venue: String(fd.get('venue') || '').trim(),
           coverUrl: String(fd.get('cover') || '').trim(), description: String(fd.get('description') || '').trim(),
           published: fd.get('published') === 'on',
+          isVisit: fd.get('isVisit') === 'on', ticketUrl: String(fd.get('ticket') || '').trim(),
+          genres: fd.getAll('genres'), lineup: String(fd.get('lineup') || '').trim().slice(0, 1000),
         });
         toast('공연을 저장했어요.', 'ok');
         if (isNew) navigate(`/admin/events/${newId}`); else rerender();

@@ -4,6 +4,7 @@ import { eventCard, emptyState } from '../components.js';
 import { icon } from '../icons.js';
 import { navigate } from '../router.js';
 import { footer } from './footer.js';
+import { artistIndex, matchEvents, seenFrom } from '../taste.js';
 
 const TABS = [
   { id: 'all', label: '전체' },
@@ -12,14 +13,24 @@ const TABS = [
   { id: 'ended', label: '지난 공연' },
 ];
 
+const KINDS = [
+  { id: 'all', label: '전체' },
+  { id: 'festival', label: '페스티벌' },
+  { id: 'visit', label: '내한 공연' },
+];
+
 export default async function home(ctx) {
   const { api, state, query } = ctx;
   const events = await api.listEvents();
   const q = (query.q || '').trim().toLowerCase();
   const tab = TABS.some((t) => t.id === query.tab) ? query.tab : 'all';
 
+  const kind = KINDS.some((k) => k.id === query.kind) ? query.kind : 'all';
   const matches = (e) => !q || [e.title, e.venue, e.city, ...e.artists].join(' ').toLowerCase().includes(q);
-  const filtered = events.filter(matches);
+  const kindOk = (k) => (e) => (k === 'festival' ? e.kind === 'festival' : k === 'visit' ? e.isVisit : true);
+  const searched = events.filter(matches);
+  const filtered = searched.filter(kindOk(kind));
+  const qs = (extra) => new URLSearchParams(Object.entries({ q: query.q, tab: query.tab, kind: query.kind, ...extra }).filter(([, v]) => v && v !== 'all')).toString();
   const byTab = {
     all: filtered,
     live: filtered.filter((e) => e.status === 'live'),
@@ -31,6 +42,17 @@ export default async function home(ctx) {
     order[a.status] - order[b.status] ||
     (a.status === 'ended' ? b.startsAt.localeCompare(a.startsAt) : a.startsAt.localeCompare(b.startsAt)));
   const live = events.filter((e) => e.status === 'live');
+
+  // 내 취향 공연 (로그인했을 때)
+  let picks = null;
+  if (state.session && !q) {
+    const [t, artists, records] = await Promise.all([api.getTaste(), api.listArtists(), api.listAttendances()]).catch(() => [null, [], []]);
+    if (t) {
+      const idx = artistIndex(artists);
+      const seen = seenFrom(records, events, idx).artists.map((a) => a.name);
+      picks = { hasTaste: t.favorites.length + t.genres.length > 0, list: matchEvents(events, { favorites: t.favorites, genres: t.genres, seen }, idx).slice(0, 6) };
+    }
+  }
   const name = state.session?.nickname;
 
   return {
@@ -58,14 +80,30 @@ export default async function home(ctx) {
           </a>`)}
         </div>` : ''}
 
+        ${picks ? html`<section class="section" style="padding-bottom:0">
+          <div class="section-title">
+            <div class="stack" style="gap:2px"><span class="serif-kicker">picked for you</span><h2>내 취향 공연</h2></div>
+            <a class="btn btn-outline btn-sm" href="#/taste">${icon('star', 16)} 취향 설정</a>
+          </div>
+          ${picks.list.length ? html`<div class="grid">${picks.list.map((m) => eventCard(m.ev, { followed: state.follows.has(m.ev.id), note: m.reason }))}</div>`
+            : html`<div class="card taste-cta"><div class="stack" style="gap:4px">
+                <strong>${picks.hasTaste ? '지금은 취향에 맞는 다가오는 공연이 없어요' : '좋아하는 아티스트와 장르를 알려 주세요'}</strong>
+                <span class="muted small">${picks.hasTaste ? '새 공연이 올라오면 알림함으로 알려 드릴게요.' : '맞는 공연과 페스티벌을 골라 보여 주고, 새로 올라오면 알려 드려요.'}</span></div>
+                <a class="btn btn-primary btn-sm" href="#/taste">${picks.hasTaste ? '취향 더 등록하기' : '취향 등록하기'}</a></div>`}
+        </section>` : ''}
+
         <section class="section">
           <div class="section-title">
             <h2>${q ? `‘${query.q}’ 검색 결과` : '공연 둘러보기'}</h2>
             <div class="tabs" role="tablist" aria-label="공연 상태">
               ${TABS.map((t) => html`<a class="tab ${tab === t.id ? 'active' : ''}" role="tab" aria-selected="${tab === t.id ? 'true' : 'false'}"
-                  href="#/?${new URLSearchParams({ ...(query.q ? { q: query.q } : {}), ...(t.id !== 'all' ? { tab: t.id } : {}) })}">
+                  href="#/?${qs({ tab: t.id })}">
                 ${t.label}<span class="count">${byTab[t.id].length}</span></a>`)}
             </div>
+          </div>
+          <div class="chips" role="group" aria-label="공연 종류">
+            ${KINDS.map((k) => html`<a class="chip ${kind === k.id ? 'active' : ''}" href="#/?${qs({ kind: k.id })}" ${kind === k.id ? html`aria-current="true"` : ''}>
+              ${k.label}<span class="count">${searched.filter(kindOk(k.id)).length}</span></a>`)}
           </div>
           ${list.length
             ? html`<div class="grid">${list.map((e) => eventCard(e, { followed: state.follows.has(e.id) }))}</div>`
@@ -77,7 +115,7 @@ export default async function home(ctx) {
     forms: {
       search(fd) {
         const v = String(fd.get('q') || '').trim();
-        navigate('/', { q: v, tab: query.tab });
+        navigate('/', { q: v, tab: query.tab, kind: query.kind });
       },
     },
 

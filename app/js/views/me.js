@@ -74,6 +74,12 @@ export default async function me(ctx) {
         </div>
       </section>
 
+      <section class="section quick-links" style="padding-top:0">
+        <a class="card quick" href="#/taste">${icon('star', 22)}<span><strong>내 취향</strong><span class="small muted">좋아하는 아티스트 · 장르 · 추천</span></span></a>
+        <a class="card quick" href="#/inbox">${icon('bell', 22)}<span><strong>알림함${state.unread ? html` <span class="pill pill-accent">${state.unread}</span>` : ''}</strong><span class="small muted">취향에 맞는 새 공연 소식</span></span></a>
+        <a class="card quick" href="#/log">${icon('clock', 22)}<span><strong>내 공연 기록</strong><span class="small muted">연도별로 다녀온 공연</span></span></a>
+      </section>
+
       <section class="section" style="padding-top:0">
         <div class="section-title">
           <div class="stack" style="gap:2px">

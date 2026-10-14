@@ -7,6 +7,7 @@ export const state = {
   settings: { freeBeta: false },
   follows: new Set(),
   progress: new Set(),
+  unread: 0,
 };
 
 export async function refreshUser() {
@@ -14,12 +15,16 @@ export async function refreshUser() {
   state.session = await api.getSession();
   state.settings = await api.getSettings().catch(() => state.settings);
   if (state.session) {
-    const [f, p] = await Promise.all([api.listFollows(), api.listProgress()]);
+    // 취향 알림을 먼저 새로 만들어 두고 (새로 올라온 공연 반영) 안 읽은 수를 세요
+    await api.refreshMyNotifications().catch(() => 0);
+    const [f, p, n] = await Promise.all([api.listFollows(), api.listProgress(), api.countUnread().catch(() => 0)]);
     state.follows = new Set(f);
     state.progress = new Set(p);
+    state.unread = n;
   } else {
     state.follows = new Set();
     state.progress = new Set();
+    state.unread = 0;
   }
 }
 

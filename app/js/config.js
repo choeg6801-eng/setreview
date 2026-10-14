@@ -3,7 +3,7 @@ const raw = window.SETREVIEW_CONFIG || {};
 export const config = {
   supabaseUrl: (raw.supabaseUrl || '').trim().replace(/\/$/, ''),
   supabaseAnonKey: (raw.supabaseAnonKey || '').trim(),
-  loginProviders: Array.isArray(raw.loginProviders) ? raw.loginProviders : ['kakao', 'google'],
+  loginProviders: Array.isArray(raw.loginProviders) ? raw.loginProviders : ['email'],
   spotifyClientId: (raw.spotifyClientId || '').trim(),
   tossClientKey: (raw.tossClientKey || '').trim(),
   membershipPrice: Number(raw.membershipPrice) || 12000,

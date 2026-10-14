@@ -1,7 +1,7 @@
 // 실제 서비스용 백엔드 — Supabase (Postgres · 로그인 · 실시간 · Edge Functions)
 // 권한은 데이터베이스의 RLS 정책(supabase/schema.sql)이 최종적으로 지켜요.
 import { config } from '../config.js';
-import { shapeEventSummary, shapeEventDetail, shapeSession, shapeSong, indexBy, groupSegments } from './shape.js';
+import { shapeEventSummary, shapeEventDetail, shapeSession, shapeSong, indexBy, groupSegments, shapeAttendance, attendanceRow, shapeArtist, shapeNotification } from './shape.js';
 import { UserError } from '../util.js';
 
 const SUPABASE_JS = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
@@ -21,6 +21,18 @@ function toUserError(error) {
   const e = new UserError(error?.message || '서버 요청에 실패했어요. 잠시 후 다시 시도해 주세요.');
   e.cause = error;
   return e;
+}
+function emailAuthError(error) {
+  const msg = `${error?.code || ''} ${error?.message || ''}`;
+  if (error?.status === 429 || /rate limit|over_email_send_rate|security purposes/i.test(msg)) {
+    return new UserError('메일을 너무 자주 보냈어요. 잠시 후 다시 시도해 주세요.');
+  }
+  if (/otp_expired|expired|invalid/i.test(msg)) return new UserError('코드가 맞지 않거나 만료됐어요. 메일을 다시 받아 주세요.');
+  if (/email_address_invalid|invalid.*email/i.test(msg)) return new UserError('이메일 주소를 확인해 주세요.');
+  if (/not authorized|email_address_not_authorized/i.test(msg)) {
+    return new UserError('아직 이 주소로는 메일을 보낼 수 없어요. 운영자에게 문의해 주세요.');
+  }
+  return toUserError(error);
 }
 function check({ data, error }) {
   if (error) throw toUserError(error);
@@ -82,6 +94,18 @@ export const supabaseBackend = {
       options: { redirectTo: `${location.origin}/app/` },
     });
     if (error) throw toUserError(error);
+  },
+  // 이메일 로그인: 로그인 링크(+ 6자리 코드)를 메일로 보내요. 처음이면 자동으로 가입돼요.
+  async sendEmailLogin(email) {
+    const { error } = await sb.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: `${location.origin}/app/`, shouldCreateUser: true },
+    });
+    if (error) throw emailAuthError(error);
+  },
+  async verifyEmailCode(email, token) {
+    const { error } = await sb.auth.verifyOtp({ email, token, type: 'email' });
+    if (error) throw emailAuthError(error);
   },
   async signInDemo() { throw new UserError('데모 계정은 데모 모드에서만 쓸 수 있어요.'); },
   async signOut() { await sb.auth.signOut(); },
@@ -167,6 +191,118 @@ export const supabaseBackend = {
     } else {
       check(await sb.from('progress').delete().eq('user_id', user.id).eq('song_id', songId));
     }
+  },
+
+  // ---------- 내 공연 기록 ----------
+  async listAttendances() {
+    if (!authSession?.user) return [];
+    const rows = check(await sb.from('attendances').select('*').eq('user_id', authSession.user.id).order('attended_on', { ascending: false }));
+    const evs = await inQuery('events', 'id', uniq(rows.map((r) => r.event_id)), 'id, slug, cover_url');
+    return rows.map((r) => shapeAttendance(r, indexBy(evs)));
+  },
+  async saveAttendance(input) {
+    const user = requireUser();
+    const row = attendanceRow(input);
+    if (!row.title) throw new UserError('공연 이름을 적어 주세요.');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(row.attended_on)) throw new UserError('날짜를 골라 주세요.');
+    const { error } = input.id
+      ? await sb.from('attendances').update(row).eq('id', input.id).eq('user_id', user.id)
+      : await sb.from('attendances').insert({ ...row, user_id: user.id });
+    if (error?.code === '23505') throw new UserError('이미 기록한 공연이에요.');
+    if (error) throw toUserError(error);
+  },
+  async deleteAttendance(id) {
+    const user = requireUser();
+    check(await sb.from('attendances').delete().eq('id', id).eq('user_id', user.id));
+  },
+
+  // ---------- 취향 · 추천 · 알림 ----------
+  async listArtists() {
+    return check(await sb.from('artists').select('id, name, name_ko, aliases, genres').order('name')).map(shapeArtist);
+  },
+  async listArtistPairs() {
+    return check(await sb.from('artist_pairs').select('a, b, users').order('users', { ascending: false }).limit(2000));
+  },
+  async getTaste() {
+    if (!authSession?.user) return { favorites: [], genres: [], emailAlerts: false, weeklyDigest: false };
+    const uid = authSession.user.id;
+    const [fav, gen] = await Promise.all([
+      sb.from('favorite_artists').select('name, created_at').eq('user_id', uid).order('created_at'),
+      sb.from('user_genres').select('genre').eq('user_id', uid),
+    ]);
+    return {
+      favorites: check(fav).map((r) => r.name),
+      genres: check(gen).map((r) => r.genre),
+      emailAlerts: profile?.email_alerts !== false,
+      weeklyDigest: profile?.weekly_digest !== false,
+    };
+  },
+  async addFavorite(name) {
+    const user = requireUser();
+    const n = String(name || '').trim().slice(0, 80);
+    if (!n) throw new UserError('아티스트 이름을 적어 주세요.');
+    const { error } = await sb.from('favorite_artists').insert({ user_id: user.id, name: n });
+    if (error?.code === '23505') throw new UserError('이미 좋아하는 아티스트예요.');
+    if (error) throw toUserError(error);
+  },
+  async removeFavorite(name) {
+    const user = requireUser();
+    const rows = check(await sb.from('favorite_artists').select('norm, name').eq('user_id', user.id));
+    const hit = rows.find((r) => r.name === name);
+    if (hit) check(await sb.from('favorite_artists').delete().eq('user_id', user.id).eq('norm', hit.norm));
+  },
+  async setGenres(list) {
+    const user = requireUser();
+    check(await sb.from('user_genres').delete().eq('user_id', user.id));
+    if (list.length) check(await sb.from('user_genres').insert(list.map((genre) => ({ user_id: user.id, genre }))));
+  },
+  async setAlertPrefs({ emailAlerts, weeklyDigest }) {
+    const user = requireUser();
+    check(await sb.from('profiles').update({ email_alerts: !!emailAlerts, weekly_digest: !!weeklyDigest }).eq('id', user.id));
+    await loadProfile();
+  },
+  async refreshMyNotifications() {
+    if (!authSession?.user) return 0;
+    const { data, error } = await sb.rpc('refresh_my_notifications');
+    if (error) throw toUserError(error);
+    return data || 0;
+  },
+  async listNotifications() {
+    if (!authSession?.user) return [];
+    const rows = check(await sb.from('notifications').select('id, kind, event_id, reason, created_at, read_at')
+      .eq('user_id', authSession.user.id).order('created_at', { ascending: false }).limit(100));
+    const evs = await inQuery('events', 'id', uniq(rows.map((r) => r.event_id)), 'id, slug, title, starts_at, venue, city, cover_url, is_visit, kind');
+    return rows.map((r) => shapeNotification(r, indexBy(evs))).filter((n) => n.event);
+  },
+  async countUnread() {
+    if (!authSession?.user) return 0;
+    const { count } = await sb.from('notifications').select('id', { count: 'exact', head: true })
+      .eq('user_id', authSession.user.id).is('read_at', null);
+    return count || 0;
+  },
+  async markNotificationsRead() {
+    const user = requireUser();
+    check(await sb.from('notifications').update({ read_at: new Date().toISOString() }).eq('user_id', user.id).is('read_at', null));
+  },
+  async adminUpsertArtistInfo({ id, name, nameKo, aliases, genres }) {
+    const n = String(name || '').trim();
+    if (!n) throw new UserError('아티스트 이름을 적어 주세요.');
+    check(await sb.from('artists').update({ name: n, name_ko: String(nameKo || '').trim() || null, aliases, genres }).eq('id', id));
+  },
+
+  // ---------- 자동 수집 (KOPIS) ----------
+  async getSyncStatus() {
+    const r = check(await sb.from('app_settings').select('value').eq('key', 'kopis_last_sync').maybeSingle());
+    return r?.value || null;
+  },
+  async runKopisSync() {
+    const { data, error } = await sb.functions.invoke('kopis-sync', { body: {} });
+    if (error) {
+      let msg = error.message;
+      try { msg = (await error.context.json()).error || msg; } catch { /* 무시 */ }
+      throw new UserError(msg);
+    }
+    return data;
   },
 
   // ---------- 제보 · 출시 알림 ----------
@@ -260,6 +396,8 @@ export const supabaseBackend = {
       slug: ev.slug, title: ev.title, kind: ev.kind, venue: ev.venue || null, city: ev.city || null,
       starts_at: ev.startsAt, ends_at: ev.endsAt, cover_url: ev.coverUrl || null, description: ev.description || null,
       published: ev.published !== false,
+      is_visit: !!ev.isVisit, ticket_url: /^https?:\/\//i.test(ev.ticketUrl || '') ? ev.ticketUrl : null,
+      genres: ev.genres || [], lineup: ev.lineup || null,
     };
     if (ev.id) { check(await sb.from('events').update(row).eq('id', ev.id)); return ev.id; }
     return check(await sb.from('events').insert(row).select('id').single()).id;

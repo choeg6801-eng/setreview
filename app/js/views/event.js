@@ -136,19 +136,22 @@ export default async function eventView(ctx) {
         ${ev.coverUrl ? html`<img class="bg" src="${ev.coverUrl}" alt="">` : ''}
         <div class="container">
           ${backLink('#/', '공연 목록')}
-          <div class="row">${statusPill(ev)}<span class="pill pill-glass">${KIND_LABEL[ev.kind] || ''}</span></div>
+          <div class="row">${statusPill(ev)}<span class="pill pill-glass">${KIND_LABEL[ev.kind] || ''}</span>${ev.isVisit ? html`<span class="pill pill-visit">내한</span>` : ''}</div>
           <h1>${ev.title}</h1>
           <div class="ev-facts">
             <span>${icon('calendar', 16)} ${fmtDate(ev.startsAt)} ${fmtTime(ev.startsAt)}${ev.status === 'upcoming' ? ` · ${dday(ev.startsAt)}` : ''}</span>
             <span>${icon('pin', 16)} ${[ev.city, ev.venue].filter(Boolean).join(' · ') || '장소 미정'}</span>
           </div>
-          ${ev.description ? html`<p class="muted" style="max-width:680px">${ev.description}</p>` : ''}
+          ${ev.description ? html`<p class="muted ev-desc">${ev.description}</p>` : ''}
           <div class="row">
             <button type="button" class="btn ${followed ? 'btn-soft' : 'btn-primary'}" data-action="toggle-follow" aria-pressed="${followed ? 'true' : 'false'}">
               ${followed ? html`${icon('check', 18)} 내 공연에 담음` : html`${icon('plus', 18)} 내 공연에 담기`}
             </button>
+            ${ev.ticketUrl ? html`<a class="btn btn-outline" href="${ev.ticketUrl}" target="_blank" rel="noopener">${icon('ticket', 18)} 예매하기 ${icon('external', 13)}</a>` : ''}
+            ${ev.status !== 'upcoming' ? html`<a class="btn btn-outline" href="#/log?add=${encodeURIComponent(ev.slug)}">${icon('calendar', 18)} 다녀왔어요 · 기록하기</a>` : ''}
             <button type="button" class="btn btn-outline" data-action="share">${icon('share', 18)} 공유</button>
           </div>
+          ${ev.source === 'kopis' ? html`<p class="faint small">일정 정보는 KOPIS(공연예술통합전산망)에서 자동으로 가져와요. 정확한 시간과 좌석은 예매처에서 확인해 주세요.</p>` : ''}
           ${allPredicted.length ? html`<div class="ev-progress">
             <span class="small">${loggedIn ? '나의 예습 진행률' : '로그인하면 곡마다 예습 완료를 체크할 수 있어요'}</span>
             <span class="mono small accent">${loggedIn ? `${done} / ${allPredicted.length}곡` : ''}</span>
@@ -157,7 +160,7 @@ export default async function eventView(ctx) {
         </div>
       </section>
       <div class="container">
-        ${ev.performances.length ? ev.performances.map(perfBlock) : html`<div class="card" style="margin-top:24px"><p class="muted">출연진을 준비하고 있어요.</p></div>`}
+        ${ev.performances.length ? ev.performances.map(perfBlock) : html`<div class="card" style="margin-top:24px"><p class="muted">${ev.source === 'kopis' ? '예상 셋리스트는 공연이 가까워지면 준비돼요. 지금은 일정과 예매 정보만 있어요. 내 공연에 담아 두면 D-day를 챙겨 드려요.' : '출연진을 준비하고 있어요.'}</p></div>`}
         ${!prem ? html`<div class="card" style="margin-top:28px">
           <div class="row between">
             <div class="stack" style="gap:4px">

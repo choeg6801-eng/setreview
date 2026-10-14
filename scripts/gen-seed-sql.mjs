@@ -38,7 +38,7 @@ for (const s of SEED.songs) {
   }
 }
 for (const e of SEED.events) {
-  out.push(`insert into public.events (id, slug, title, kind, venue, city, starts_at, ends_at, cover_url, description) values (${q(uuid(e.id))}, ${q(e.slug)}, ${q(e.title)}, ${q(e.kind)}, ${q(e.venue)}, ${q(e.city)}, ${when(e.starts)}, ${when(e.ends)}, ${q(e.cover)}, ${q(e.description)});`);
+  out.push(`insert into public.events (id, slug, title, kind, venue, city, starts_at, ends_at, cover_url, description, is_visit) values (${q(uuid(e.id))}, ${q(e.slug)}, ${q(e.title)}, ${q(e.kind)}, ${q(e.venue)}, ${q(e.city)}, ${when(e.starts)}, ${when(e.ends)}, ${q(e.cover)}, ${q(e.description)}, ${e.title.includes('내한') ? 'true' : 'false'});`);
   e.performances.forEach((p, sort) => {
     out.push(`insert into public.performances (id, event_id, artist_id, stage, starts_at, ends_at, status, sort) values (${q(uuid(p.id))}, ${q(uuid(e.id))}, ${q(uuid(p.artist))}, ${q(p.stage)}, ${when(p.starts)}, ${when(p.ends)}, ${q(p.status)}, ${sort});`);
     (p.predicted || []).forEach((ref, i) => {
@@ -54,6 +54,10 @@ for (const e of SEED.events) {
     });
   });
 }
+// 취향 맞춤용 정보 (한글 이름 · 장르 · 페스티벌 출연진)
+out.push("update public.artists set name_ko = '브루노 마스', genres = '{팝,R&B}' where name = 'Bruno Mars';");
+out.push("update public.artists set name_ko = '마룬 파이브', aliases = '{Maroon5,마룬5}', genres = '{팝,록}' where name = 'Maroon 5';");
+out.push("update public.events set genres = '{록,팝}', lineup = 'Bruno Mars, Maroon 5' where kind = 'festival' and source = 'manual';");
 out.push('commit;');
 writeFileSync(new URL('../supabase/seed.sql', import.meta.url), out.join('\n') + '\n');
 console.log('supabase/seed.sql 생성 완료:', out.length, '줄');

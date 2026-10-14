@@ -334,3 +334,215 @@ create index if not exists reports_performance_idx on public.reports(performance
 create index if not exists reports_song_idx on public.reports(song_id);
 create index if not exists reports_user_idx on public.reports(user_id);
 create index if not exists setlist_items_song_idx on public.setlist_items(song_id);
+
+-- ------------------------------------------------------------
+-- 자동 수집(KOPIS) 표시 · 내 공연 기록
+-- ------------------------------------------------------------
+alter table public.events
+  add column if not exists source      text not null default 'manual',
+  add column if not exists external_id text,
+  add column if not exists is_visit    boolean not null default false,   -- 내한 공연
+  add column if not exists ticket_url  text,
+  add column if not exists updated_at  timestamptz not null default now();
+alter table public.events drop constraint if exists events_source_check;
+alter table public.events add constraint events_source_check check (source in ('manual', 'kopis'));
+alter table public.events drop constraint if exists events_source_external_key;
+alter table public.events add constraint events_source_external_key unique (source, external_id);
+create index if not exists events_starts_idx on public.events(starts_at);
+
+create table if not exists public.attendances (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null default auth.uid() references auth.users on delete cascade,
+  event_id    uuid references public.events on delete set null,
+  title       text not null check (char_length(title) between 1 and 120),
+  artist      text check (char_length(artist) <= 120),
+  kind        text not null default 'concert' check (kind in ('festival', 'concert')),
+  is_visit    boolean not null default false,
+  venue       text check (char_length(venue) <= 80),
+  city        text check (char_length(city) <= 40),
+  attended_on date not null,
+  rating      smallint check (rating between 1 and 5),
+  memo        text check (char_length(memo) <= 500),
+  created_at  timestamptz not null default now(),
+  unique (user_id, event_id)
+);
+create index if not exists attendances_user_date_idx on public.attendances(user_id, attended_on desc);
+create index if not exists attendances_event_idx on public.attendances(event_id);
+alter table public.attendances enable row level security;
+drop policy if exists "attendances own" on public.attendances;
+create policy "attendances own" on public.attendances for all
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+revoke all on public.attendances from anon;
+
+-- ============================================================
+-- 취향 · 맞춤 공연 · 알림
+-- ============================================================
+
+-- 아티스트: 한글 이름 · 다른 이름 · 장르
+alter table public.artists
+  add column if not exists name_ko text,
+  add column if not exists aliases text[] not null default '{}',
+  add column if not exists genres  text[] not null default '{}';
+
+-- 공연: 출연진 원문 · 장르
+alter table public.events
+  add column if not exists lineup text,
+  add column if not exists genres text[] not null default '{}';
+
+-- 이름 비교용: 소문자 + 공백·기호 제거
+create or replace function public.norm_name(t text)
+returns text language sql immutable set search_path = '' as $$
+  select regexp_replace(lower(coalesce(t, '')), '[^0-9a-z가-힣ぁ-んァ-ン一-龥]+', '', 'g');
+$$;
+
+-- 좋아하는 아티스트
+create table if not exists public.favorite_artists (
+  user_id    uuid not null default auth.uid() references auth.users on delete cascade,
+  name       text not null check (char_length(name) between 1 and 80),
+  norm       text generated always as (public.norm_name(name)) stored,
+  created_at timestamptz not null default now(),
+  primary key (user_id, norm)
+);
+alter table public.favorite_artists enable row level security;
+drop policy if exists "favorite own" on public.favorite_artists;
+create policy "favorite own" on public.favorite_artists for all
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+revoke all on public.favorite_artists from anon;
+
+-- 좋아하는 장르
+create table if not exists public.user_genres (
+  user_id    uuid not null default auth.uid() references auth.users on delete cascade,
+  genre      text not null check (char_length(genre) between 1 and 30),
+  created_at timestamptz not null default now(),
+  primary key (user_id, genre)
+);
+alter table public.user_genres enable row level security;
+drop policy if exists "genres own" on public.user_genres;
+create policy "genres own" on public.user_genres for all
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+revoke all on public.user_genres from anon;
+
+-- 알림 설정 (프로필)
+alter table public.profiles
+  add column if not exists email_alerts  boolean not null default true,
+  add column if not exists weekly_digest boolean not null default true;
+grant update (nickname, email_alerts, weekly_digest) on public.profiles to authenticated;
+
+-- 알림함
+create table if not exists public.notifications (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references auth.users on delete cascade,
+  kind        text not null check (kind in ('artist', 'genre')),
+  event_id    uuid not null references public.events on delete cascade,
+  reason      text,
+  created_at  timestamptz not null default now(),
+  read_at     timestamptz,
+  emailed_at  timestamptz,
+  digested_at timestamptz,
+  unique (user_id, event_id)
+);
+create index if not exists notifications_user_idx on public.notifications(user_id, created_at desc);
+create index if not exists notifications_event_idx on public.notifications(event_id);
+alter table public.notifications enable row level security;
+drop policy if exists "notifications read own" on public.notifications;
+drop policy if exists "notifications update own" on public.notifications;
+drop policy if exists "notifications delete own" on public.notifications;
+create policy "notifications read own"   on public.notifications for select using (user_id = (select auth.uid()));
+create policy "notifications update own" on public.notifications for update using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+create policy "notifications delete own" on public.notifications for delete using (user_id = (select auth.uid()));
+revoke all on public.notifications from anon;
+revoke insert, update on public.notifications from authenticated;
+grant update (read_at) on public.notifications to authenticated;
+
+-- 함께 좋아하는 아티스트 (2명 이상이 같이 고른 쌍만, 누가 골랐는지는 남기지 않아요)
+create table if not exists public.artist_pairs (
+  a     text not null,
+  b     text not null,
+  users int  not null,
+  primary key (a, b)
+);
+alter table public.artist_pairs enable row level security;
+drop policy if exists "pairs read" on public.artist_pairs;
+create policy "pairs read" on public.artist_pairs for select using (true);
+revoke insert, update, delete on public.artist_pairs from anon, authenticated;
+
+-- ------------------------------------------------------------
+-- 알림 만들기: 좋아하는 아티스트가 나오는 공연 + 좋아하는 장르의 새 공연
+-- p_user 가 null 이면 모든 사용자 (매일 예약 실행), 아니면 그 사용자만
+-- ------------------------------------------------------------
+create or replace function private.generate_notifications(p_user uuid default null)
+returns int language plpgsql security definer set search_path = '' as $$
+declare n1 int; n2 int;
+begin
+  -- 1) 아티스트: 공연 제목 · 출연진 · 무대 아티스트에 이름(한글 이름 · 다른 이름 포함)이 들어 있으면
+  with names as (
+    select f.user_id, f.name as label, f.norm as key from public.favorite_artists f
+    where (p_user is null or f.user_id = p_user) and char_length(f.norm) >= 2
+    union
+    select f.user_id, f.name, public.norm_name(x)
+    from public.favorite_artists f
+    join public.artists a on public.norm_name(a.name) = f.norm or public.norm_name(a.name_ko) = f.norm
+                          or f.norm = any (select public.norm_name(y) from unnest(a.aliases) y)
+    cross join lateral unnest(array[a.name, a.name_ko] || a.aliases) x
+    where (p_user is null or f.user_id = p_user) and char_length(public.norm_name(x)) >= 2
+  ),
+  ev as (
+    select e.id, public.norm_name(e.title) || '|' || public.norm_name(e.lineup) || '|' ||
+           coalesce((select string_agg(public.norm_name(a.name) || '|' || public.norm_name(a.name_ko), '|')
+                     from public.performances p join public.artists a on a.id = p.artist_id where p.event_id = e.id), '') as txt
+    from public.events e
+    where e.published and e.ends_at > now()
+  ),
+  hits as (
+    select distinct on (names.user_id, ev.id) names.user_id, ev.id as event_id, names.label
+    from names join ev on strpos(ev.txt, names.key) > 0
+    order by names.user_id, ev.id, names.label
+  )
+  insert into public.notifications (user_id, kind, event_id, reason)
+  select user_id, 'artist', event_id, label || ' 출연' from hits
+  on conflict (user_id, event_id) do nothing;
+  get diagnostics n1 = row_count;
+
+  -- 2) 장르: 최근 8일 안에 새로 올라온 공연 중 좋아하는 장르와 겹치는 것
+  insert into public.notifications (user_id, kind, event_id, reason)
+  select distinct on (g.user_id, e.id) g.user_id, 'genre', e.id, g.genre || ' 공연'
+  from public.user_genres g
+  join public.events e on e.published and e.starts_at > now() and e.created_at > now() - interval '8 days'
+  where (p_user is null or g.user_id = p_user)
+    and (g.genre = any (e.genres) or exists (
+      select 1 from public.performances p join public.artists a on a.id = p.artist_id
+      where p.event_id = e.id and g.genre = any (a.genres)))
+  order by g.user_id, e.id, g.genre
+  on conflict (user_id, event_id) do nothing;
+  get diagnostics n2 = row_count;
+  return n1 + n2;
+end $$;
+
+-- 함께 좋아하는 아티스트 쌍 다시 계산
+create or replace function private.refresh_artist_pairs()
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  create temp table if not exists _pairs on commit drop as
+    select max(f1.name) as a, max(f2.name) as b, count(distinct f1.user_id)::int as users
+    from public.favorite_artists f1
+    join public.favorite_artists f2 on f2.user_id = f1.user_id and f2.norm <> f1.norm
+    group by f1.norm, f2.norm
+    having count(distinct f1.user_id) >= 2;
+  merge into public.artist_pairs t
+  using _pairs s on t.a = s.a and t.b = s.b
+  when matched then update set users = s.users
+  when not matched then insert (a, b, users) values (s.a, s.b, s.users)
+  when not matched by source then delete;
+end $$;
+
+revoke all on function private.generate_notifications(uuid) from public;
+revoke all on function private.refresh_artist_pairs() from public;
+grant execute on function private.generate_notifications(uuid) to authenticated, service_role;
+
+-- 로그인한 사용자가 자기 알림만 바로 새로 만들 때 (취향을 바꾼 직후)
+create or replace function public.refresh_my_notifications()
+returns int language sql security invoker set search_path = '' as $$
+  select private.generate_notifications((select auth.uid()));
+$$;
+revoke all on function public.refresh_my_notifications() from public, anon;
+grant execute on function public.refresh_my_notifications() to authenticated;

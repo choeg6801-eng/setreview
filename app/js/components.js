@@ -18,13 +18,14 @@ export function art(url, alt = '', size = 48, cls = '') {
   return html`<img class="art ${cls}" src="${url}" alt="${alt}" width="${size}" height="${size}" loading="lazy" decoding="async">`;
 }
 
-export function eventCard(ev, { followed = false, showFollow = true } = {}) {
+export function eventCard(ev, { followed = false, showFollow = true, note = '' } = {}) {
   return html`<article class="event-card ${ev.status === 'live' ? 'is-live' : ''}">
     <a class="event-cover" href="#/e/${encodeURIComponent(ev.slug)}" aria-label="${ev.title} 자세히 보기">
       ${ev.coverUrl ? html`<img src="${ev.coverUrl}" alt="" loading="lazy" decoding="async">` : html`<span class="cover-fallback" aria-hidden="true"></span>`}
-      <span class="event-cover-top">${statusPill(ev)}<span class="pill pill-glass">${KIND_LABEL[ev.kind] || ''}</span></span>
+      <span class="event-cover-top">${statusPill(ev)}<span class="pill pill-glass">${KIND_LABEL[ev.kind] || ''}</span>${ev.isVisit ? html`<span class="pill pill-visit">내한</span>` : ''}</span>
     </a>
     <div class="event-body">
+      ${note ? html`<p class="event-note">${note}</p>` : ''}
       <h3 class="event-title"><a href="#/e/${encodeURIComponent(ev.slug)}">${ev.title}</a></h3>
       <p class="event-meta">${icon('calendar', 15)} ${fmtDate(ev.startsAt)} ${fmtTime(ev.startsAt)}</p>
       <p class="event-meta">${icon('pin', 15)} ${[ev.city, ev.venue].filter(Boolean).join(' · ') || '장소 미정'}</p>

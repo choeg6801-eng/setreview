@@ -10,6 +10,7 @@ function navItems() {
   const items = [
     { href: '#/', label: '공연', icon: 'ticket', match: (p) => p === '/' || p.startsWith('/e/') || p.startsWith('/recap') },
     { href: '#/me', label: '내 공연', icon: 'calendar', match: (p) => p === '/me' },
+    { href: '#/log', label: '기록', icon: 'clock', match: (p) => p === '/log' },
     { href: '#/membership', label: '멤버십', icon: 'star', match: (p) => p === '/membership' },
   ];
   if (state.session?.isAdmin) items.push({ href: '#/admin', label: '운영', icon: 'settings', match: (p) => p.startsWith('/admin') });
@@ -27,6 +28,7 @@ export function renderChrome(path) {
       </nav>
       <div class="topbar-right">
         <a class="btn btn-ghost btn-sm hide-sm" href="/">서비스 소개</a>
+        ${s ? html`<a class="icon-btn bell ${path === '/inbox' ? 'active' : ''}" href="#/inbox" aria-label="알림함${state.unread ? ` · 새 알림 ${state.unread}개` : ''}">${icon('bell', 20)}${state.unread ? html`<span class="bell-dot">${state.unread > 99 ? '99+' : state.unread}</span>` : ''}</a>` : ''}
         ${s
           ? html`<a class="user-chip" href="#/me" aria-label="내 정보">${icon('user', 16)}<span>${s.nickname}</span></a>`
           : html`<a class="btn btn-primary btn-sm" href="#/login">로그인</a>`}

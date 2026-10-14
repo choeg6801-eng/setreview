@@ -9,7 +9,7 @@ window.SETREVIEW_CONFIG = {
   supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkcWFxa3N2bmdlY29ha3BicXZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4NzcxMDcsImV4cCI6MjEwNzQ1MzEwN30.awjhZAJ4VzhzqO4PSrC4uPfIE4seACicgOuIs4A9hTk',    // 'anon public' 키 (공개돼도 괜찮은 키예요)
 
   // 로그인 버튼으로 보여 줄 소셜 로그인 (Supabase 에서 켠 것만 남기세요)
-  loginProviders: ['kakao'],
+  loginProviders: ['email'],
 
   // Spotify 베타 (developer.spotify.com 에서 만든 앱의 Client ID)
   // 개발 모드 앱은 허용 목록에 등록한 최대 5명만 쓸 수 있어요.

@@ -47,6 +47,11 @@ export function shapeEventSummary(ev, perfs, artistsById, now = Date.now()) {
     coverUrl: ev.cover_url || '',
     description: ev.description || '',
     published: ev.published !== false,
+    isVisit: !!ev.is_visit,
+    lineup: ev.lineup || '',
+    genres: ev.genres || [],
+    source: ev.source || 'manual',
+    ticketUrl: /^https?:\/\//i.test(ev.ticket_url || '') ? ev.ticket_url : '',
     status: eventStatus(ev, perfs, now),
     artists: sorted.map((p) => artistsById[p.artist_id]?.name).filter(Boolean),
   };
@@ -113,4 +118,54 @@ export function groupSegments(segs) {
   const out = {};
   for (const g of segs) (out[g.song_id] ||= []).push(g);
   return out;
+}
+
+// 내 공연 기록 한 줄
+export function shapeAttendance(a, eventsById = {}) {
+  const ev = a.event_id ? eventsById[a.event_id] : null;
+  return {
+    id: a.id,
+    eventId: a.event_id || null,
+    eventSlug: ev?.slug || null,
+    coverUrl: ev?.cover_url || '',
+    title: a.title,
+    artist: a.artist || '',
+    kind: a.kind || 'concert',
+    isVisit: !!a.is_visit,
+    venue: a.venue || '',
+    city: a.city || '',
+    date: String(a.attended_on).slice(0, 10),
+    rating: a.rating || null,
+    memo: a.memo || '',
+  };
+}
+
+// 화면에서 받은 값 → 저장할 행
+export function attendanceRow(input) {
+  const t = (v, n) => (v == null ? '' : String(v).trim().slice(0, n));
+  const row = {
+    event_id: input.eventId || null,
+    title: t(input.title, 120),
+    artist: t(input.artist, 120) || null,
+    kind: input.kind === 'festival' ? 'festival' : 'concert',
+    is_visit: !!input.isVisit,
+    venue: t(input.venue, 80) || null,
+    city: t(input.city, 40) || null,
+    attended_on: t(input.date, 10),
+    rating: input.rating ? Math.min(5, Math.max(1, Number(input.rating))) : null,
+    memo: t(input.memo, 500) || null,
+  };
+  return row;
+}
+
+export function shapeArtist(a) {
+  return { id: a.id, name: a.name, nameKo: a.name_ko || '', aliases: a.aliases || [], genres: a.genres || [] };
+}
+
+export function shapeNotification(n, eventsById = {}) {
+  const ev = eventsById[n.event_id];
+  return {
+    id: n.id, kind: n.kind, reason: n.reason || '', createdAt: n.created_at, read: !!n.read_at,
+    event: ev ? { id: ev.id, slug: ev.slug, title: ev.title, startsAt: ev.starts_at, venue: ev.venue || '', city: ev.city || '', coverUrl: ev.cover_url || '', isVisit: !!ev.is_visit, kind: ev.kind } : null,
+  };
 }

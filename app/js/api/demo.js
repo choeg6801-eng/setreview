@@ -1,7 +1,9 @@
 // 데모 백엔드 — 브라우저 localStorage 에 데이터를 저장해요.
 // 서버 없이 앱 전체를 체험하고 테스트할 수 있어요. 다른 탭과도 실시간으로 동기화돼요.
 import { buildDemoDb } from './seed.js';
-import { shapeEventSummary, shapeEventDetail, shapeSession, shapeSong, indexBy, groupSegments, canPremium } from './shape.js';
+import { shapeEventSummary, shapeEventDetail, shapeSession, shapeSong, indexBy, groupSegments, canPremium, shapeAttendance, attendanceRow, shapeArtist, shapeNotification } from './shape.js';
+import { norm, artistIndex, matchEvents } from '../taste.js';
+import { demoAttendances, demoTasteData } from './seed.js';
 import { UserError, uid } from '../util.js';
 
 const DB_KEY = 'setreview-demo-db-v1';
@@ -66,6 +68,9 @@ export const demo = {
       db = buildDemoDb();
       try { localStorage.setItem(DB_KEY, JSON.stringify(db)); } catch { /* 무시 */ }
     }
+    // 예전에 저장된 데모 데이터에 새 항목 채우기
+    if (!db.attendances) { db.attendances = demoAttendances(db); try { localStorage.setItem(DB_KEY, JSON.stringify(db)); } catch { /* 무시 */ } }
+    if (!db.favorites) { Object.assign(db, demoTasteData(db)); try { localStorage.setItem(DB_KEY, JSON.stringify(db)); } catch { /* 무시 */ } }
     window.addEventListener('storage', (e) => {
       if (e.key === DB_KEY) { db = load() || db; emit(); }
       if (e.key === SESSION_KEY) authListeners.forEach((fn) => fn());
@@ -84,6 +89,8 @@ export const demo = {
     return tick();
   },
   async signIn() { throw new UserError('데모 모드에서는 데모 계정으로 로그인해요.'); },
+  async sendEmailLogin() { throw new UserError('데모 모드에서는 데모 계정으로 로그인해요.'); },
+  async verifyEmailCode() { throw new UserError('데모 모드에서는 데모 계정으로 로그인해요.'); },
   async signOut() { setSessionUserId(null); return tick(); },
   async updateNickname(nickname) {
     const u = requireUser();
@@ -161,6 +168,131 @@ export const demo = {
     save();
     return tick();
   },
+
+  // ---------- 내 공연 기록 ----------
+  async listAttendances() {
+    const u = me();
+    if (!u) return tick([]);
+    const evs = indexBy(db.events);
+    return tick(db.attendances.filter((a) => a.user_id === u.id).map((a) => shapeAttendance(a, evs))
+      .sort((a, b) => b.date.localeCompare(a.date)));
+  },
+  async saveAttendance(input) {
+    const u = requireUser();
+    const row = attendanceRow(input);
+    if (!row.title) throw new UserError('공연 이름을 적어 주세요.');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(row.attended_on)) throw new UserError('날짜를 골라 주세요.');
+    if (row.event_id && db.attendances.some((a) => a.user_id === u.id && a.event_id === row.event_id && a.id !== input.id)) {
+      throw new UserError('이미 기록한 공연이에요.');
+    }
+    const found = input.id && db.attendances.find((a) => a.id === input.id && a.user_id === u.id);
+    if (found) Object.assign(found, row);
+    else db.attendances.push({ id: uid('att'), user_id: u.id, created_at: new Date().toISOString(), ...row });
+    save();
+    return tick();
+  },
+  async deleteAttendance(id) {
+    const u = requireUser();
+    db.attendances = db.attendances.filter((a) => !(a.id === id && a.user_id === u.id));
+    save();
+    return tick();
+  },
+
+  // ---------- 취향 · 추천 · 알림 ----------
+  async listArtists() { return tick([...db.artists].sort((a, b) => a.name.localeCompare(b.name)).map(shapeArtist)); },
+  async listArtistPairs() { return tick([...db.artist_pairs]); },
+  async getTaste() {
+    const u = me();
+    if (!u) return tick({ favorites: [], genres: [], emailAlerts: false, weeklyDigest: false });
+    return tick({
+      favorites: db.favorites.filter((f) => f.user_id === u.id).map((f) => f.name),
+      genres: db.user_genres.filter((g) => g.user_id === u.id).map((g) => g.genre),
+      emailAlerts: u.email_alerts !== false,
+      weeklyDigest: u.weekly_digest !== false,
+    });
+  },
+  async addFavorite(name) {
+    const u = requireUser();
+    const n = String(name || '').trim().slice(0, 80);
+    if (!n) throw new UserError('아티스트 이름을 적어 주세요.');
+    if (db.favorites.some((f) => f.user_id === u.id && norm(f.name) === norm(n))) throw new UserError('이미 좋아하는 아티스트예요.');
+    db.favorites.push({ user_id: u.id, name: n, created_at: new Date().toISOString() });
+    save();
+    return tick();
+  },
+  async removeFavorite(name) {
+    const u = requireUser();
+    db.favorites = db.favorites.filter((f) => !(f.user_id === u.id && f.name === name));
+    save();
+    return tick();
+  },
+  async setGenres(list) {
+    const u = requireUser();
+    db.user_genres = db.user_genres.filter((g) => g.user_id !== u.id).concat(list.map((genre) => ({ user_id: u.id, genre })));
+    save();
+    return tick();
+  },
+  async setAlertPrefs({ emailAlerts, weeklyDigest }) {
+    const u = requireUser();
+    u.email_alerts = !!emailAlerts;
+    u.weekly_digest = !!weeklyDigest;
+    save();
+    return tick();
+  },
+  async refreshMyNotifications() {
+    const u = me();
+    if (!u) return tick(0);
+    const idx = artistIndex(db.artists.map(shapeArtist));
+    const artists = indexBy(db.artists);
+    const events = db.events.filter((e) => e.published)
+      .map((e) => shapeEventSummary(e, db.performances.filter((p) => p.event_id === e.id), artists));
+    const favorites = db.favorites.filter((f) => f.user_id === u.id).map((f) => f.name);
+    const genres = db.user_genres.filter((g) => g.user_id === u.id).map((g) => g.genre);
+    let made = 0;
+    for (const m of matchEvents(events, { favorites, genres }, idx)) {
+      if (db.notifications.some((n) => n.user_id === u.id && n.event_id === m.ev.id)) continue;
+      db.notifications.push({
+        id: uid('ntf'), user_id: u.id, kind: m.reason.startsWith('♥') ? 'artist' : 'genre', event_id: m.ev.id,
+        reason: m.reason.replace(/^♥ /, '').replace(/ 취향$/, ' 공연'), created_at: new Date().toISOString(), read_at: null,
+      });
+      made++;
+    }
+    if (made) save();
+    return tick(made);
+  },
+  async listNotifications() {
+    const u = me();
+    if (!u) return tick([]);
+    const evs = indexBy(db.events);
+    return tick(db.notifications.filter((n) => n.user_id === u.id)
+      .sort((a, b) => b.created_at.localeCompare(a.created_at))
+      .map((n) => shapeNotification(n, evs)).filter((n) => n.event));
+  },
+  async countUnread() {
+    const u = me();
+    return tick(u ? db.notifications.filter((n) => n.user_id === u.id && !n.read_at).length : 0);
+  },
+  async markNotificationsRead() {
+    const u = requireUser();
+    const now = new Date().toISOString();
+    for (const n of db.notifications) if (n.user_id === u.id && !n.read_at) n.read_at = now;
+    save();
+    return tick();
+  },
+  async adminUpsertArtistInfo({ id, name, nameKo, aliases, genres }) {
+    requireAdmin();
+    const a = db.artists.find((x) => x.id === id);
+    if (!a) throw new UserError('아티스트를 찾을 수 없어요.');
+    const n = String(name || '').trim();
+    if (!n) throw new UserError('아티스트 이름을 적어 주세요.');
+    Object.assign(a, { name: n, name_ko: String(nameKo || '').trim() || null, aliases, genres });
+    save();
+    return tick();
+  },
+
+  // ---------- 자동 수집 (데모에서는 안내만) ----------
+  async getSyncStatus() { return tick(null); },
+  async runKopisSync() { throw new UserError('데모 모드에서는 자동 수집을 실행할 수 없어요. Supabase 에 연결하면 매일 자동으로 가져와요.'); },
 
   // ---------- 제보 · 출시 알림 ----------
   async submitReport({ performanceId, kind, songId = null, title = '', atSec = null }) {
@@ -287,6 +419,8 @@ export const demo = {
       slug: ev.slug, title: ev.title, kind: ev.kind, venue: ev.venue || null, city: ev.city || null,
       starts_at: ev.startsAt, ends_at: ev.endsAt, cover_url: ev.coverUrl || null, description: ev.description || null,
       published: ev.published !== false,
+      is_visit: !!ev.isVisit, ticket_url: /^https?:\/\//i.test(ev.ticketUrl || '') ? ev.ticketUrl : null,
+      genres: ev.genres || [], lineup: ev.lineup || null,
     });
     save();
     return tick(row.id);
