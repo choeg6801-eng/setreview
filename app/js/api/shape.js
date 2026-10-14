@@ -24,13 +24,20 @@ export function chantScore(song) {
   return scores.length ? Math.max(...scores) : null;
 }
 
+const DAY_MS = 86400000;
 export function eventStatus(ev, perfs, now = Date.now()) {
   if (perfs.some((p) => p.status === 'live')) return 'live';
   const start = new Date(ev.starts_at).getTime();
   const end = new Date(ev.ends_at).getTime();
   if (now > end || (perfs.length && perfs.every((p) => p.status === 'ended'))) return 'ended';
-  if (now >= start) return 'live';
-  return 'upcoming';
+  if (now < start) return 'upcoming';
+  // 무대 정보가 없는 공연은 "오늘, 시작 시각 ~ 밤 11시" 사이에만 LIVE 로 봐요.
+  // 여러 날 하는 공연은 매일 저녁에만, 일주일 넘게 이어지는 장기 공연·패키지는 자동으로 LIVE 표시하지 않아요.
+  if (end - start > 7 * DAY_MS) return 'upcoming';
+  const KST = 9 * 3600000;
+  const minuteOfDay = (t) => Math.floor(((t + KST) % DAY_MS) / 60000);
+  const nowMin = minuteOfDay(now);
+  return nowMin >= minuteOfDay(start) && nowMin <= 23 * 60 ? 'live' : 'upcoming';
 }
 
 export function shapeEventSummary(ev, perfs, artistsById, now = Date.now()) {

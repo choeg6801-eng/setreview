@@ -110,8 +110,13 @@ async function listAll(path: string) {
 const FEST_RE = /페스티벌|festival|페스타|fest\b|뮤직\s*페스|록\s*페|락\s*페|썸머\s*소닉|summer\s*sonic|워터밤|waterbomb|펜타포트|pentaport/i;
 const VISIT_RE = /내한|live\s+in\s+(seoul|korea|busan|incheon)|in\s+seoul|in\s+korea|asia\s+tour|world\s+tour|\btour\b/i;
 const LATIN_RE = /^[\x20-\x7E·:–—'’"“”()\[\]&!?.,\-]+$/;
+const SKIP_RE = /패키지|package|숙박|호텔|투어\s*상품/i;
+const dayOf = (dot: string) => Date.parse(dot.replace(/\./g, '-'));
+// 패키지 상품이나 기간이 비정상적으로 긴(120일 넘는) 등록은 빼요
+const isJunk = (it: Item) => SKIP_RE.test(it.title) || (it.to && dayOf(it.to) - dayOf(it.from) > 120 * 86400000);
 const isCandidate = (it: Item, fest: Set<string>) =>
-  fest.has(it.id) || FEST_RE.test(it.title) || VISIT_RE.test(it.title) || LATIN_RE.test(it.title);
+  !isJunk(it) && (fest.has(it.id) || FEST_RE.test(it.title) || VISIT_RE.test(it.title) || LATIN_RE.test(it.title));
+const normName = (s: string) => (s || '').toLowerCase().replace(/[^0-9a-z가-힣]/g, '');
 
 function classify(it: Item, d: Record<string, string>, fest: Set<string>) {
   const flagFest = (d.festival || '').toUpperCase() === 'Y';
@@ -180,6 +185,11 @@ async function sync() {
 
   const { data: existingRows } = await db.from('events').select('id, external_id').eq('source', 'kopis');
   const existing = new Map((existingRows || []).map((r) => [r.external_id as string, r.id as string]));
+  // 소식 수집·제보·직접 등록으로 이미 있는 공연(같은 날, 같은 공연장)은 KOPIS 에서 또 넣지 않아요
+  const { data: otherRows } = await db.from('events').select('starts_at, venue').neq('source', 'kopis').gte('ends_at', new Date(Date.now() - 7 * 86400000).toISOString());
+  const kstDate = (iso: string) => new Date(Date.parse(iso) + 9 * 3600000).toISOString().slice(0, 10);
+  const otherKeys = new Set((otherRows || []).map((r) => `${kstDate(r.starts_at as string)}|${normName(r.venue as string).slice(0, 4)}`));
+  const isDupOfOther = (it: Item) => otherKeys.has(`${it.from.replace(/\./g, '-')}|${normName(it.venue).slice(0, 4)}`);
 
   // 이미 확인해서 제외한 공연은 30일 동안 다시 확인하지 않아요
   const since = new Date(Date.now() - 30 * 86400000).toISOString();
@@ -210,6 +220,11 @@ async function sync() {
   const deferred = fresh.length - batch.length;
   await pool(batch, async (it) => {
     try {
+      if (isDupOfOther(it)) {
+        skipped++;
+        await db.from('kopis_seen').upsert({ external_id: it.id, checked_at: new Date().toISOString() });
+        return;
+      }
       const d = await detail(it.id);
       const { festival, visit } = classify(it, d, fest);
       if (!festival && !visit) {
