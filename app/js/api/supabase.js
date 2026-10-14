@@ -220,7 +220,7 @@ export const supabaseBackend = {
 
   // ---------- 취향 · 추천 · 알림 ----------
   async listArtists() {
-    return check(await sb.from('artists').select('id, name, name_ko, aliases, genres').order('name')).map(shapeArtist);
+    return check(await sb.from('artists').select('id, name, name_ko, aliases, genres, similar_artists').order('name')).map(shapeArtist);
   },
   async listArtistPairs() {
     return check(await sb.from('artist_pairs').select('a, b, users').order('users', { ascending: false }).limit(2000));
@@ -286,10 +286,10 @@ export const supabaseBackend = {
     const user = requireUser();
     check(await sb.from('notifications').update({ read_at: new Date().toISOString() }).eq('user_id', user.id).is('read_at', null));
   },
-  async adminUpsertArtistInfo({ id, name, nameKo, aliases, genres }) {
+  async adminUpsertArtistInfo({ id, name, nameKo, aliases, genres, similar = [] }) {
     const n = String(name || '').trim();
     if (!n) throw new UserError('아티스트 이름을 적어 주세요.');
-    check(await sb.from('artists').update({ name: n, name_ko: String(nameKo || '').trim() || null, aliases, genres }).eq('id', id));
+    check(await sb.from('artists').update({ name: n, name_ko: String(nameKo || '').trim() || null, aliases, genres, similar_artists: similar }).eq('id', id));
   },
 
   // ---------- 공연 제보 · 검토 ----------

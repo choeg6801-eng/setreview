@@ -279,13 +279,13 @@ export const demo = {
     save();
     return tick();
   },
-  async adminUpsertArtistInfo({ id, name, nameKo, aliases, genres }) {
+  async adminUpsertArtistInfo({ id, name, nameKo, aliases, genres, similar = [] }) {
     requireAdmin();
     const a = db.artists.find((x) => x.id === id);
     if (!a) throw new UserError('아티스트를 찾을 수 없어요.');
     const n = String(name || '').trim();
     if (!n) throw new UserError('아티스트 이름을 적어 주세요.');
-    Object.assign(a, { name: n, name_ko: String(nameKo || '').trim() || null, aliases, genres });
+    Object.assign(a, { name: n, name_ko: String(nameKo || '').trim() || null, aliases, genres, similar_artists: similar });
     save();
     return tick();
   },

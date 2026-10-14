@@ -102,13 +102,22 @@ export function recommendArtists({ favorites = [], seen = [], genres = [], event
     const label = a?.name || name;
     const key = norm(label);
     if (!key || key.length < 2 || isKnown(label)) return;
-    const c = cands.get(key) || { name: label, score: 0, reasons: [], genres: a?.genres || [] };
+    const c = cands.get(key) || { name: label, nameKo: a?.nameKo && a.nameKo !== label ? a.nameKo : '', score: 0, reasons: [], genres: a?.genres || [] };
     c.score += pts;
     if (reason && !c.reasons.includes(reason) && c.reasons.length < 2) c.reasons.push(reason);
     cands.set(key, c);
   };
 
   events = events.filter((e) => e.published !== false);
+  // 0) 셋리뷰가 정리한 비슷한 아티스트 (가장 강한 신호)
+  for (const k of known) {
+    const a = idx.get(norm(k));
+    for (const s of a?.similar || []) add(s, 3, `${k} 팬이라면 좋아할 만해요`);
+  }
+  for (const a of artists) {
+    const hit = (a.similar || []).find((s) => known.some((k) => sameArtist(k, s, idx)));
+    if (hit) add(a.name, 1.5, `${known.find((k) => sameArtist(k, hit, idx)) || hit}와 비슷한 음악`);
+  }
   // 1) 같은 공연 · 페스티벌에 함께 나온 아티스트
   for (const ev of events) {
     const people = eventPeople(ev);

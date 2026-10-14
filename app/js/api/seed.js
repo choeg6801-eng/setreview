@@ -172,14 +172,14 @@ export function buildDemoDb(now = Date.now()) {
 // 데모용 취향 데이터: 아티스트 장르 · 공연 장르/출연진 · 함께 좋아하는 아티스트 · 데모 계정 취향
 export function demoTasteData(db) {
   const info = {
-    'Bruno Mars': { name_ko: '브루노 마스', aliases: [], genres: ['팝', 'R&B'] },
-    'Maroon 5': { name_ko: '마룬 파이브', aliases: ['Maroon5', '마룬5'], genres: ['팝', '록'] },
+    'Bruno Mars': { name_ko: '브루노 마스', aliases: [], genres: ['팝', 'R&B'], similar_artists: ['미드나잇 소울', '시티 라이츠'] },
+    'Maroon 5': { name_ko: '마룬 파이브', aliases: ['Maroon5', '마룬5'], genres: ['팝', '록'], similar_artists: ['스칼렛 리프', '블루 아워 트리오'] },
   };
-  for (const a of db.artists) Object.assign(a, { name_ko: null, aliases: [], genres: [] }, info[a.name] || {});
+  for (const a of db.artists) Object.assign(a, { name_ko: null, aliases: [], genres: [], similar_artists: [] }, info[a.name] || {});
   // 장르 추천 예시용 가상 아티스트
   for (const [name, genres] of [['선셋 오케스트라', ['인디', '록']], ['네온 웨이브', ['일렉트로닉', '팝']], ['미드나잇 소울', ['R&B', '팝']], ['데모 밴드', ['록']],
     ['스칼렛 리프', ['록', '메탈']], ['블루 아워 트리오', ['재즈']], ['오로라 포크', ['포크·어쿠스틱', '인디']], ['시티 라이츠', ['팝', 'R&B']]]) {
-    if (!db.artists.some((a) => a.name === name)) db.artists.push({ id: `a-${name}`, name, slug: `demo-${db.artists.length}`, name_ko: null, aliases: [], genres });
+    if (!db.artists.some((a) => a.name === name)) db.artists.push({ id: `a-${name}`, name, slug: `demo-${db.artists.length}`, name_ko: null, aliases: [], genres, similar_artists: [] });
   }
   for (const e of db.events) {
     e.genres = e.kind === 'festival' ? ['록', '팝'] : [];

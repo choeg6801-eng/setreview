@@ -99,7 +99,7 @@ export default async function taste(ctx) {
         <div class="section-title"><div class="stack" style="gap:2px"><span class="serif-kicker">you might like</span><h2>추천 아티스트</h2></div></div>
         ${recs.length ? html`<div class="rec-grid">${recs.map((r) => html`<article class="card rec">
             <div class="row between" style="flex-wrap:nowrap;gap:10px">
-              <h3>${r.name}</h3>
+              <h3>${r.name}${r.nameKo ? html` <span class="faint small">${r.nameKo}</span>` : ''}</h3>
               <button type="button" class="btn btn-soft btn-sm" data-action="fav-quick" data-name="${r.name}">${icon('plus', 14)} 좋아요</button>
             </div>
             ${r.reasons.map((x) => html`<p class="small muted">${x}</p>`)}

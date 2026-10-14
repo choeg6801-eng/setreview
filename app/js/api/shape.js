@@ -162,7 +162,7 @@ export function attendanceRow(input) {
 }
 
 export function shapeArtist(a) {
-  return { id: a.id, name: a.name, nameKo: a.name_ko || '', aliases: a.aliases || [], genres: a.genres || [] };
+  return { id: a.id, name: a.name, nameKo: a.name_ko || '', aliases: a.aliases || [], genres: a.genres || [], similar: a.similar_artists || [] };
 }
 
 export function shapeNotification(n, eventsById = {}) {

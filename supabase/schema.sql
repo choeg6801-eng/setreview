@@ -678,3 +678,9 @@ begin
   return n1 + n2;
 end $$;
 revoke all on function private.generate_ticket_alerts(text) from public;
+
+-- ============================================================
+-- 아티스트 추천용: 비슷한 아티스트 (셋리뷰가 정리한 목록, 운영자 화면 · 매일 수집 작업이 채워요)
+-- ============================================================
+alter table public.artists add column if not exists similar_artists text[] not null default '{}';
+create index if not exists artists_name_norm_idx on public.artists (public.norm_name(name));

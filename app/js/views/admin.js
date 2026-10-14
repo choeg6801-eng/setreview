@@ -333,6 +333,7 @@ const TAB_VIEWS = {
             <div class="field"><label for="ai-ko">한글 이름</label><input id="ai-ko" class="input" name="nameKo" value="${cur.name_ko || ''}" placeholder="예: 브루노 마스"></div>
             <div class="field"><label for="ai-alias">다른 이름</label><input id="ai-alias" class="input" name="aliases" value="${(cur.aliases || []).join(', ')}" placeholder="쉼표로 나눠 주세요. 예: Maroon5, 마룬5"></div>
           </div>
+          <div class="field"><label for="ai-sim">비슷한 아티스트</label><input id="ai-sim" class="input" name="similar" value="${(cur.similar_artists || []).join(', ')}" placeholder="쉼표로 나눠 주세요. 추천에 가장 크게 반영돼요"></div>
           <fieldset class="field"><legend class="label">장르</legend><div class="tchips">
             ${GENRES.map((g) => html`<label class="tchip check-chip"><input type="checkbox" name="genres" value="${g}" ${(cur.genres || []).includes(g) ? 'checked' : ''}> ${g}</label>`)}
           </div></fieldset>
@@ -364,6 +365,7 @@ const TAB_VIEWS = {
             id: cur.id, name: fd.get('name'), nameKo: fd.get('nameKo'),
             aliases: String(fd.get('aliases') || '').split(',').map((x) => x.trim()).filter(Boolean).slice(0, 10),
             genres: fd.getAll('genres'),
+            similar: String(fd.get('similar') || '').split(',').map((x) => x.trim()).filter(Boolean).slice(0, 12),
           });
           toast('아티스트 정보를 저장했어요.', 'ok');
           ctx.rerender();
