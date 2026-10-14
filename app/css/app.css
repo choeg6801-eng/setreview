@@ -512,3 +512,26 @@ a.bar-col:hover .bar-l { color: var(--text); }
 }
 .taste-status { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
 .taste-status > span:first-child { display: inline-flex; align-items: center; gap: 8px; }
+
+/* ---------- 티켓 오픈 · 제보 · 검토 ---------- */
+.ticket-meta { color: var(--muted); }
+.ticket-meta.soon { color: var(--peach); font-weight: 700; }
+.ticket-fact.soon strong { color: var(--peach); }
+.ticket-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.ticket-row { display: grid; grid-template-columns: 92px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 12px 14px; border-radius: var(--radius); background: var(--card); border: 1px solid var(--line); text-decoration: none; color: var(--text); }
+.ticket-row:hover { border-color: var(--line-2); color: var(--text); }
+.ticket-row.soon { border-color: rgba(255, 106, 31, 0.55); background: linear-gradient(100deg, rgba(255, 106, 31, 0.14), var(--card) 55%); }
+.ticket-when { display: flex; flex-direction: column; font-family: var(--mono); }
+.ticket-when strong { font-size: 15px; }
+.ticket-when span { font-size: 13px; color: var(--muted); }
+.ticket-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ticket-main strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.submit-cta { margin-top: 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.review-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.review-item { display: flex; justify-content: space-between; gap: 14px; padding: 12px 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.review-item:first-child { border-top: 0; padding-top: 0; }
+.sub-item { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 760px) {
+  .ticket-row { grid-template-columns: 70px minmax(0, 1fr); }
+  .ticket-row .pill { grid-column: 2; justify-self: start; }
+}

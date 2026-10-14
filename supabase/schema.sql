@@ -432,14 +432,14 @@ grant update (nickname, email_alerts, weekly_digest) on public.profiles to authe
 create table if not exists public.notifications (
   id          uuid primary key default gen_random_uuid(),
   user_id     uuid not null references auth.users on delete cascade,
-  kind        text not null check (kind in ('artist', 'genre')),
+  kind        text not null check (kind in ('artist', 'genre', 'ticket_d1', 'ticket_h1')),
   event_id    uuid not null references public.events on delete cascade,
   reason      text,
   created_at  timestamptz not null default now(),
   read_at     timestamptz,
   emailed_at  timestamptz,
   digested_at timestamptz,
-  unique (user_id, event_id)
+  unique (user_id, event_id, kind)
 );
 create index if not exists notifications_user_idx on public.notifications(user_id, created_at desc);
 create index if not exists notifications_event_idx on public.notifications(event_id);
@@ -500,7 +500,7 @@ begin
   )
   insert into public.notifications (user_id, kind, event_id, reason)
   select user_id, 'artist', event_id, label || ' 출연' from hits
-  on conflict (user_id, event_id) do nothing;
+  on conflict (user_id, event_id, kind) do nothing;
   get diagnostics n1 = row_count;
 
   -- 2) 장르: 최근 8일 안에 새로 올라온 공연 중 좋아하는 장르와 겹치는 것
@@ -513,7 +513,7 @@ begin
       select 1 from public.performances p join public.artists a on a.id = p.artist_id
       where p.event_id = e.id and g.genre = any (a.genres)))
   order by g.user_id, e.id, g.genre
-  on conflict (user_id, event_id) do nothing;
+  on conflict (user_id, event_id, kind) do nothing;
   get diagnostics n2 = row_count;
   return n1 + n2;
 end $$;
@@ -546,3 +546,135 @@ returns int language sql security invoker set search_path = '' as $$
 $$;
 revoke all on function public.refresh_my_notifications() from public, anon;
 grant execute on function public.refresh_my_notifications() to authenticated;
+
+-- ============================================================
+-- 티켓 오픈 · 공연 소식 검토 · 사용자 공연 제보
+-- ============================================================
+alter table public.events
+  add column if not exists ticket_open_at timestamptz,
+  add column if not exists source_url     text,
+  add column if not exists review_note    text;
+alter table public.events drop constraint if exists events_source_check;
+alter table public.events add constraint events_source_check check (source in ('manual', 'kopis', 'news', 'report'));
+create index if not exists events_ticket_open_idx on public.events(ticket_open_at) where ticket_open_at is not null;
+
+create table if not exists public.event_submissions (
+  id             uuid primary key default gen_random_uuid(),
+  user_id        uuid not null default auth.uid() references auth.users on delete cascade,
+  title          text not null check (char_length(title) between 2 and 120),
+  artist         text check (char_length(artist) <= 200),
+  kind           text not null default 'concert' check (kind in ('festival', 'concert')),
+  is_visit       boolean not null default false,
+  starts_on      date,
+  venue          text check (char_length(venue) <= 80),
+  city           text check (char_length(city) <= 40),
+  ticket_open_at timestamptz,
+  ticket_url     text check (char_length(ticket_url) <= 500),
+  source_url     text not null check (source_url ~* '^https?://' and char_length(source_url) <= 500),
+  memo           text check (char_length(memo) <= 500),
+  status         text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
+  event_id       uuid references public.events on delete set null,
+  created_at     timestamptz not null default now()
+);
+create index if not exists event_submissions_status_idx on public.event_submissions(status, created_at desc);
+create index if not exists event_submissions_user_idx on public.event_submissions(user_id);
+create index if not exists event_submissions_event_idx on public.event_submissions(event_id);
+alter table public.event_submissions enable row level security;
+drop policy if exists "submissions insert own" on public.event_submissions;
+drop policy if exists "submissions read" on public.event_submissions;
+drop policy if exists "submissions admin update" on public.event_submissions;
+drop policy if exists "submissions admin delete" on public.event_submissions;
+create policy "submissions insert own" on public.event_submissions for insert
+  with check (user_id = (select auth.uid()) and status = 'pending' and event_id is null);
+create policy "submissions read" on public.event_submissions for select using (user_id = (select auth.uid()) or (select private.is_admin()));
+create policy "submissions admin update" on public.event_submissions for update using ((select private.is_admin())) with check ((select private.is_admin()));
+create policy "submissions admin delete" on public.event_submissions for delete using ((select private.is_admin()));
+revoke all on public.event_submissions from anon;
+
+-- 공연에 관심 있는 사용자 (좋아하는 아티스트 출연)
+create or replace function private.interested_users(p_user uuid default null)
+returns table (user_id uuid, event_id uuid, label text)
+language sql stable security definer set search_path = '' as $$
+  with names as (
+    select f.user_id, f.name as label, f.norm as key from public.favorite_artists f
+    where (p_user is null or f.user_id = p_user) and char_length(f.norm) >= 2
+    union
+    select f.user_id, f.name, public.norm_name(x)
+    from public.favorite_artists f
+    join public.artists a on public.norm_name(a.name) = f.norm or public.norm_name(a.name_ko) = f.norm
+                          or f.norm = any (select public.norm_name(y) from unnest(a.aliases) y)
+    cross join lateral unnest(array[a.name, a.name_ko] || a.aliases) x
+    where (p_user is null or f.user_id = p_user) and char_length(public.norm_name(x)) >= 2
+  ),
+  ev as (
+    select e.id, public.norm_name(e.title) || '|' || public.norm_name(e.lineup) || '|' ||
+           coalesce((select string_agg(public.norm_name(a.name) || '|' || public.norm_name(a.name_ko), '|')
+                     from public.performances p join public.artists a on a.id = p.artist_id where p.event_id = e.id), '') as txt
+    from public.events e where e.published and e.ends_at > now()
+  )
+  select distinct on (names.user_id, ev.id) names.user_id, ev.id, names.label
+  from names join ev on strpos(ev.txt, names.key) > 0
+  order by names.user_id, ev.id, names.label;
+$$;
+revoke all on function private.interested_users(uuid) from public;
+
+-- 취향 알림 (아티스트 · 장르) — 위 버전을 대체해요
+create or replace function private.generate_notifications(p_user uuid default null)
+returns int language plpgsql security definer set search_path = '' as $$
+declare n1 int; n2 int;
+begin
+  insert into public.notifications (user_id, kind, event_id, reason)
+  select i.user_id, 'artist', i.event_id, i.label || ' 출연' from private.interested_users(p_user) i
+  on conflict (user_id, event_id, kind) do nothing;
+  get diagnostics n1 = row_count;
+  insert into public.notifications (user_id, kind, event_id, reason)
+  select distinct on (g.user_id, e.id) g.user_id, 'genre', e.id, g.genre || ' 공연'
+  from public.user_genres g
+  join public.events e on e.published and e.starts_at > now() and e.created_at > now() - interval '8 days'
+  where (p_user is null or g.user_id = p_user)
+    and not exists (select 1 from public.notifications n where n.user_id = g.user_id and n.event_id = e.id and n.kind = 'artist')
+    and (g.genre = any (e.genres) or exists (
+      select 1 from public.performances p join public.artists a on a.id = p.artist_id
+      where p.event_id = e.id and g.genre = any (a.genres)))
+  order by g.user_id, e.id, g.genre
+  on conflict (user_id, event_id, kind) do nothing;
+  get diagnostics n2 = row_count;
+  return n1 + n2;
+end $$;
+
+-- 티켓 오픈 알림: 'd1' = 6~30시간 전 (매일 아침), 'h1' = 75분 안 (매시간)
+create or replace function private.generate_ticket_alerts(p_kind text default 'both')
+returns int language plpgsql security definer set search_path = '' as $$
+declare n1 int := 0; n2 int := 0;
+begin
+  if p_kind in ('d1', 'both') then
+    with targets as (
+      select i.user_id, i.event_id, i.label || ' 공연' as why from private.interested_users(null) i
+      union select f.user_id, f.event_id, '담아 둔 공연' from public.follows f
+    )
+    insert into public.notifications (user_id, kind, event_id, reason)
+    select distinct on (t.user_id, e.id) t.user_id, 'ticket_d1', e.id,
+           '티켓 오픈 ' || to_char(e.ticket_open_at at time zone 'Asia/Seoul', 'MM/DD HH24:MI') || ' · ' || t.why
+    from targets t join public.events e on e.id = t.event_id
+    where e.published and e.ticket_open_at > now() + interval '75 minutes' and e.ticket_open_at <= now() + interval '30 hours'
+    order by t.user_id, e.id
+    on conflict (user_id, event_id, kind) do nothing;
+    get diagnostics n1 = row_count;
+  end if;
+  if p_kind in ('h1', 'both') then
+    with targets as (
+      select i.user_id, i.event_id, i.label || ' 공연' as why from private.interested_users(null) i
+      union select f.user_id, f.event_id, '담아 둔 공연' from public.follows f
+    )
+    insert into public.notifications (user_id, kind, event_id, reason)
+    select distinct on (t.user_id, e.id) t.user_id, 'ticket_h1', e.id,
+           '곧 티켓 오픈 · 오늘 ' || to_char(e.ticket_open_at at time zone 'Asia/Seoul', 'HH24:MI') || ' · ' || t.why
+    from targets t join public.events e on e.id = t.event_id
+    where e.published and e.ticket_open_at > now() and e.ticket_open_at <= now() + interval '75 minutes'
+    order by t.user_id, e.id
+    on conflict (user_id, event_id, kind) do nothing;
+    get diagnostics n2 = row_count;
+  end if;
+  return n1 + n2;
+end $$;
+revoke all on function private.generate_ticket_alerts(text) from public;

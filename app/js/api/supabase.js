@@ -1,7 +1,7 @@
 // 실제 서비스용 백엔드 — Supabase (Postgres · 로그인 · 실시간 · Edge Functions)
 // 권한은 데이터베이스의 RLS 정책(supabase/schema.sql)이 최종적으로 지켜요.
 import { config } from '../config.js';
-import { shapeEventSummary, shapeEventDetail, shapeSession, shapeSong, indexBy, groupSegments, shapeAttendance, attendanceRow, shapeArtist, shapeNotification } from './shape.js';
+import { shapeEventSummary, shapeEventDetail, shapeSession, shapeSong, indexBy, groupSegments, shapeAttendance, attendanceRow, shapeArtist, shapeNotification, shapeSubmission, submissionRow, eventFromSubmission } from './shape.js';
 import { UserError } from '../util.js';
 
 const SUPABASE_JS = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
@@ -290,6 +290,31 @@ export const supabaseBackend = {
     check(await sb.from('artists').update({ name: n, name_ko: String(nameKo || '').trim() || null, aliases, genres }).eq('id', id));
   },
 
+  // ---------- 공연 제보 · 검토 ----------
+  async submitEvent(input) {
+    const user = requireUser();
+    const row = submissionRow(input);
+    if (row.title.length < 2) throw new UserError('공연 이름을 적어 주세요.');
+    if (!row.source_url) throw new UserError('공지나 기사 링크(https://…)를 넣어 주세요. 확인할 때 꼭 필요해요.');
+    check(await sb.from('event_submissions').insert({ ...row, user_id: user.id }));
+  },
+  async listMySubmissions() {
+    if (!authSession?.user) return [];
+    return check(await sb.from('event_submissions').select('*').eq('user_id', authSession.user.id).order('created_at', { ascending: false }).limit(30)).map(shapeSubmission);
+  },
+  async adminListSubmissions() {
+    return check(await sb.from('event_submissions').select('*').eq('status', 'pending').order('created_at')).map(shapeSubmission);
+  },
+  async adminApproveSubmission(id) {
+    const s = check(await sb.from('event_submissions').select('*').eq('id', id).single());
+    const slug = `r-${Date.now().toString(36)}`;
+    const ev = check(await sb.from('events').insert(eventFromSubmission(s, slug)).select('id, slug').single());
+    check(await sb.from('event_submissions').update({ status: 'approved', event_id: ev.id }).eq('id', id));
+    return ev;
+  },
+  async adminRejectSubmission(id) { check(await sb.from('event_submissions').update({ status: 'rejected' }).eq('id', id)); },
+  async adminSetPublished(eventId, on) { check(await sb.from('events').update({ published: !!on }).eq('id', eventId)); },
+
   // ---------- 자동 수집 (KOPIS) ----------
   async getSyncStatus() {
     const r = check(await sb.from('app_settings').select('value').eq('key', 'kopis_last_sync').maybeSingle());
@@ -398,6 +423,7 @@ export const supabaseBackend = {
       published: ev.published !== false,
       is_visit: !!ev.isVisit, ticket_url: /^https?:\/\//i.test(ev.ticketUrl || '') ? ev.ticketUrl : null,
       genres: ev.genres || [], lineup: ev.lineup || null,
+      ticket_open_at: ev.ticketOpenAt || null, source_url: /^https?:\/\//i.test(ev.sourceUrl || '') ? ev.sourceUrl : null,
     };
     if (ev.id) { check(await sb.from('events').update(row).eq('id', ev.id)); return ev.id; }
     return check(await sb.from('events').insert(row).select('id').single()).id;

@@ -1,6 +1,7 @@
 // 공연 찾기 (홈)
 import { html, toast } from '../util.js';
-import { eventCard, emptyState } from '../components.js';
+import { eventCard, emptyState, ticketInfo } from '../components.js';
+import { fmtDate, fmtTime } from '../util.js';
 import { icon } from '../icons.js';
 import { navigate } from '../router.js';
 import { footer } from './footer.js';
@@ -43,6 +44,11 @@ export default async function home(ctx) {
     (a.status === 'ended' ? b.startsAt.localeCompare(a.startsAt) : a.startsAt.localeCompare(b.startsAt)));
   const live = events.filter((e) => e.status === 'live');
 
+  // 곧 티켓이 열리는 공연 (30일 안)
+  const soonTickets = q ? [] : events
+    .filter((e) => e.ticketOpenAt && e.status !== 'ended' && Date.parse(e.ticketOpenAt) > Date.now() && Date.parse(e.ticketOpenAt) < Date.now() + 30 * 86400000)
+    .sort((a, b) => a.ticketOpenAt.localeCompare(b.ticketOpenAt)).slice(0, 6);
+
   // 내 취향 공연 (로그인했을 때)
   let picks = null;
   if (state.session && !q) {
@@ -80,6 +86,15 @@ export default async function home(ctx) {
           </a>`)}
         </div>` : ''}
 
+        ${soonTickets.length ? html`<section class="section" style="padding-bottom:0">
+          <div class="section-title"><div class="stack" style="gap:2px"><span class="serif-kicker">ticket alarm</span><h2>곧 티켓 오픈</h2></div></div>
+          <ol class="ticket-list">${soonTickets.map((e) => { const t = ticketInfo(e); return html`<li><a class="ticket-row ${t.soon ? 'soon' : ''}" href="#/e/${encodeURIComponent(e.slug)}">
+            <span class="ticket-when"><strong>${new Date(Date.parse(e.ticketOpenAt) + 9 * 3600000).toISOString().slice(5, 10).replace('-', '.')}</strong><span>${fmtDate(e.ticketOpenAt, { month: undefined, day: undefined })} ${fmtTime(e.ticketOpenAt)}</span></span>
+            <span class="ticket-main"><strong>${e.title}</strong><span class="small muted">${fmtDate(e.startsAt)} 공연 · ${[e.city, e.venue].filter(Boolean).join(' ')}</span></span>
+            <span class="pill ${t.soon ? 'pill-accent' : 'pill-soft'}">${t.label}</span>
+          </a></li>`; })}</ol>
+        </section>` : ''}
+
         ${picks ? html`<section class="section" style="padding-bottom:0">
           <div class="section-title">
             <div class="stack" style="gap:2px"><span class="serif-kicker">picked for you</span><h2>내 취향 공연</h2></div>
@@ -107,7 +122,11 @@ export default async function home(ctx) {
           </div>
           ${list.length
             ? html`<div class="grid">${list.map((e) => eventCard(e, { followed: state.follows.has(e.id) }))}</div>`
-            : emptyState(q ? '찾는 공연이 없어요' : '아직 등록된 공연이 없어요', q ? '다른 이름이나 도시로 검색해 보세요.' : '곧 새로운 공연이 올라올 거예요.', q ? html`<a class="btn btn-outline" href="#/">전체 공연 보기</a>` : '')}
+            : emptyState(q ? '찾는 공연이 없어요' : '아직 등록된 공연이 없어요', q ? '다른 이름이나 도시로 검색해 보세요. 새로 발표된 공연이면 제보해 주세요.' : '곧 새로운 공연이 올라올 거예요.', html`${q ? html`<a class="btn btn-outline" href="#/">전체 공연 보기</a> ` : ''}<a class="btn btn-primary" href="#/submit">공연 제보하기</a>`)}
+          <div class="card submit-cta">
+            <span><strong>발표됐는데 아직 없는 공연이 있나요?</strong> <span class="muted small">공지 링크와 함께 알려 주시면 확인하고 바로 올려 드려요.</span></span>
+            <a class="btn btn-outline btn-sm" href="#/submit">${icon('plus', 16)} 공연 제보하기</a>
+          </div>
         </section>
       </div>
       ${footer()}`,

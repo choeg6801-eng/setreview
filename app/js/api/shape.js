@@ -49,6 +49,9 @@ export function shapeEventSummary(ev, perfs, artistsById, now = Date.now()) {
     published: ev.published !== false,
     isVisit: !!ev.is_visit,
     lineup: ev.lineup || '',
+    ticketOpenAt: ev.ticket_open_at || null,
+    sourceUrl: /^https?:\/\//i.test(ev.source_url || '') ? ev.source_url : '',
+    reviewNote: ev.review_note || '',
     genres: ev.genres || [],
     source: ev.source || 'manual',
     ticketUrl: /^https?:\/\//i.test(ev.ticket_url || '') ? ev.ticket_url : '',
@@ -167,5 +170,37 @@ export function shapeNotification(n, eventsById = {}) {
   return {
     id: n.id, kind: n.kind, reason: n.reason || '', createdAt: n.created_at, read: !!n.read_at,
     event: ev ? { id: ev.id, slug: ev.slug, title: ev.title, startsAt: ev.starts_at, venue: ev.venue || '', city: ev.city || '', coverUrl: ev.cover_url || '', isVisit: !!ev.is_visit, kind: ev.kind } : null,
+  };
+}
+
+export function shapeSubmission(r) {
+  return {
+    id: r.id, title: r.title, artist: r.artist || '', kind: r.kind, isVisit: !!r.is_visit, startsOn: r.starts_on || '',
+    venue: r.venue || '', city: r.city || '', ticketOpenAt: r.ticket_open_at || null,
+    ticketUrl: /^https?:\/\//i.test(r.ticket_url || '') ? r.ticket_url : '', sourceUrl: r.source_url, memo: r.memo || '',
+    status: r.status, eventId: r.event_id || null, createdAt: r.created_at, userId: r.user_id,
+  };
+}
+
+const url = (v) => { const t = String(v || '').trim(); return /^https?:\/\/\S+$/i.test(t) ? t.slice(0, 500) : null; };
+export function submissionRow(input) {
+  const t = (v, n) => String(v ?? '').trim().slice(0, n);
+  return {
+    title: t(input.title, 120), artist: t(input.artist, 200) || null,
+    kind: input.kind === 'festival' ? 'festival' : 'concert', is_visit: !!input.isVisit,
+    starts_on: /^\d{4}-\d{2}-\d{2}$/.test(input.startsOn || '') ? input.startsOn : null,
+    venue: t(input.venue, 80) || null, city: t(input.city, 40) || null,
+    ticket_open_at: input.ticketOpenAt || null, ticket_url: url(input.ticketUrl), source_url: url(input.sourceUrl), memo: t(input.memo, 500) || null,
+  };
+}
+
+// 승인한 제보 → 공연 행
+export function eventFromSubmission(s, slug) {
+  const day = s.starts_on || new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+  return {
+    slug, title: s.title, kind: s.kind, is_visit: !!s.is_visit, venue: s.venue, city: s.city,
+    starts_at: `${day}T18:00:00+09:00`, ends_at: `${day}T23:00:00+09:00`,
+    lineup: s.artist, ticket_open_at: s.ticket_open_at, ticket_url: s.ticket_url, source: 'report', source_url: s.source_url,
+    description: s.memo ? `제보 메모: ${s.memo}` : null, published: true, genres: [],
   };
 }

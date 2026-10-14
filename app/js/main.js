@@ -21,6 +21,7 @@ route('/me', () => import('./views/me.js'));
 route('/log', () => import('./views/log.js'));
 route('/taste', () => import('./views/taste.js'));
 route('/inbox', () => import('./views/inbox.js'));
+route('/submit', () => import('./views/submit.js'));
 route('/login', () => import('./views/login.js'));
 route('/membership', () => import('./views/membership.js'));
 route('/recap/:slug/:perf', () => import('./views/recap.js'));

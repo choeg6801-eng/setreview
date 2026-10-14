@@ -18,6 +18,17 @@ export function art(url, alt = '', size = 48, cls = '') {
   return html`<img class="art ${cls}" src="${url}" alt="${alt}" width="${size}" height="${size}" loading="lazy" decoding="async">`;
 }
 
+// 티켓 오픈 표시: 열리기 전이면 "티켓 오픈 D-3 · 10월 20일 20:00", 막 열렸으면 "예매 중"
+export function ticketInfo(ev, now = Date.now()) {
+  if (!ev.ticketOpenAt || ev.status === 'ended') return null;
+  const t = new Date(ev.ticketOpenAt).getTime();
+  if (t > now) {
+    const d = daysUntil(ev.ticketOpenAt, now);
+    return { upcoming: true, soon: d <= 1, label: d === 0 ? `오늘 ${fmtTime(ev.ticketOpenAt)} 티켓 오픈` : `티켓 오픈 D-${d}`, when: `${fmtDate(ev.ticketOpenAt)} ${fmtTime(ev.ticketOpenAt)}` };
+  }
+  return { upcoming: false, soon: false, label: '예매 중', when: `${fmtDate(ev.ticketOpenAt)} 오픈` };
+}
+
 export function eventCard(ev, { followed = false, showFollow = true, note = '' } = {}) {
   return html`<article class="event-card ${ev.status === 'live' ? 'is-live' : ''}">
     <a class="event-cover" href="#/e/${encodeURIComponent(ev.slug)}" aria-label="${ev.title} 자세히 보기">
@@ -29,6 +40,7 @@ export function eventCard(ev, { followed = false, showFollow = true, note = '' }
       <h3 class="event-title"><a href="#/e/${encodeURIComponent(ev.slug)}">${ev.title}</a></h3>
       <p class="event-meta">${icon('calendar', 15)} ${fmtDate(ev.startsAt)} ${fmtTime(ev.startsAt)}</p>
       <p class="event-meta">${icon('pin', 15)} ${[ev.city, ev.venue].filter(Boolean).join(' · ') || '장소 미정'}</p>
+      ${(() => { const t = ticketInfo(ev); return t?.upcoming ? html`<p class="event-meta ticket-meta ${t.soon ? 'soon' : ''}">${icon('ticket', 15)} ${t.label} <span class="faint">· ${t.when}</span></p>` : ''; })()}
       ${ev.artists.length ? html`<p class="event-artists">${ev.artists.join(' · ')}</p>` : ''}
       ${showFollow ? html`<button type="button" class="btn ${followed ? 'btn-soft' : 'btn-outline'} btn-sm event-follow" data-action="toggle-follow" data-id="${ev.id}" aria-pressed="${followed ? 'true' : 'false'}">
         ${followed ? html`${icon('check', 16)} 내 공연에 담음` : html`${icon('plus', 16)} 내 공연에 담기`}

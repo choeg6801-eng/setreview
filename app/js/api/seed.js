@@ -185,7 +185,29 @@ export function demoTasteData(db) {
     e.genres = e.kind === 'festival' ? ['록', '팝'] : [];
     e.lineup = e.kind === 'festival' ? 'Bruno Mars, Maroon 5, 선셋 오케스트라, 스칼렛 리프, 데모 밴드 외 12팀' : null;
   }
+  // 티켓 오픈 예시: 브루노 마스 공연은 3일 뒤 저녁 8시 오픈
+  const day = 86400000;
+  const kstMid = (t) => t - ((t + 9 * 3600000) % day);
+  const bruno = db.events.find((e) => e.id === 'e-bruno-seoul');
+  if (bruno) bruno.ticket_open_at = new Date(kstMid(Date.now()) + 3 * day + 20 * 3600000).toISOString();
+  // 검토 대기 예시: 매일 공연 소식 수집이 찾은 초안
+  if (!db.events.some((e) => e.id === 'e-draft-demo')) {
+    const start = new Date(kstMid(Date.now()) + 120 * day + 19 * 3600000);
+    db.events.push({
+      id: 'e-draft-demo', slug: 'draft-demo', title: '스칼렛 리프 첫 내한 공연 (예시 초안)', kind: 'concert', is_visit: true,
+      venue: '예시 아레나', city: '서울', starts_at: start.toISOString(), ends_at: new Date(start.getTime() + 3 * 3600000).toISOString(),
+      cover_url: null, description: null, published: false, source: 'news', source_url: 'https://example.com/news/demo',
+      review_note: '기사 1건 확인 · 티켓 오픈 시간은 기획사 공지 확인 필요', lineup: '스칼렛 리프', genres: ['록', '메탈'],
+      ticket_open_at: new Date(kstMid(Date.now()) + 10 * day + 20 * 3600000).toISOString(), ticket_url: null,
+    });
+  }
   return {
+    submissions: [{
+      id: 'sub-demo-1', user_id: 'u-demo', title: '오로라 포크 내한 공연 (예시 제보)', artist: '오로라 포크', kind: 'concert', is_visit: true,
+      starts_on: new Date(kstMid(Date.now()) + 90 * day).toISOString().slice(0, 10), venue: '예시 홀', city: '서울',
+      ticket_open_at: null, ticket_url: null, source_url: 'https://example.com/notice/demo', memo: '공식 SNS 공지 확인',
+      status: 'pending', event_id: null, created_at: new Date().toISOString(),
+    }],
     favorites: [{ user_id: 'u-demo', name: 'Maroon 5', created_at: new Date().toISOString() }],
     user_genres: [{ user_id: 'u-demo', genre: '록' }],
     notifications: [],

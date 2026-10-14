@@ -8,6 +8,7 @@ import { GENRES } from '../taste.js';
 
 const TABS = [
   { id: 'live', label: '라이브 진행', icon: 'live' },
+  { id: 'review', label: '검토 대기', icon: 'check' },
   { id: 'events', label: '공연', icon: 'ticket' },
   { id: 'songs', label: '곡 · 떼창 구간', icon: 'music' },
   { id: 'reports', label: '현장 제보', icon: 'mic' },
@@ -35,18 +36,20 @@ export default async function admin(ctx) {
     };
   }
   const tab = TABS.some((t) => t.id === params.tab) ? params.tab : 'live';
-  const reports = await api.adminListReports();
+  const [reports, subs, allEvents] = await Promise.all([api.adminListReports(), api.adminListSubmissions().catch(() => []), api.listEvents({ includeUnpublished: true })]);
   const pending = reports.filter((r) => r.status === 'pending');
+  const drafts = allEvents.filter((e) => !e.published && (e.source === 'news' || e.source === 'report'));
+  const reviewCount = subs.length + drafts.length;
 
   const shell = (title, body) => html`<div class="container admin-layout">
     <nav class="admin-nav" aria-label="운영자 메뉴">
       ${TABS.map((t) => html`<a href="#/admin/${t.id}" class="${tab === t.id ? 'active' : ''}" ${tab === t.id ? html`aria-current="page"` : ''}>
-        ${icon(t.icon, 18)}${t.label}${t.id === 'reports' && pending.length ? html`<span class="count">${pending.length}</span>` : ''}</a>`)}
+        ${icon(t.icon, 18)}${t.label}${t.id === 'reports' && pending.length ? html`<span class="count">${pending.length}</span>` : ''}${t.id === 'review' && reviewCount ? html`<span class="count">${reviewCount}</span>` : ''}</a>`)}
     </nav>
     <div class="admin-main">${body}</div>
   </div>`;
 
-  const view = await TAB_VIEWS[tab]({ ...ctx, reports, pending, tab, id: params.id, query });
+  const view = await TAB_VIEWS[tab]({ ...ctx, reports, pending, subs, drafts, tab, id: params.id, query });
   return {
     title: `운영 · ${view.title}`,
     html: shell(view.title, view.html),
@@ -197,6 +200,73 @@ const TAB_VIEWS = {
           await api.adminAddActual(sel.id, { title, isEncore: encore });
           form.reset();
           toast(`‘${title}’ 추가`, 'ok');
+          rerender();
+        },
+      },
+    };
+  },
+
+  // ============================================================ 검토 대기 (뉴스 수집 초안 · 사용자 제보)
+  async review({ api, subs, drafts, rerender }) {
+    const srcLink = (u) => (u ? html`<a href="${u}" target="_blank" rel="noopener">${icon('external', 13)} 출처 확인</a>` : '');
+    return {
+      title: '검토 대기',
+      html: html`
+        <h1>검토 대기</h1>
+        <p class="muted">매일 공연 소식 수집이 찾은 공연과 사용자 제보예요. <strong>출처 링크를 열어 날짜 · 장소 · 티켓 오픈 시간을 확인</strong>한 뒤 공개해 주세요. 공개하면 좋아하는 사람들에게 알림과 티켓 오픈 알림이 가요.</p>
+        <div class="card stack">
+          <h2>수집한 공연 초안 <span class="faint small">${drafts.length}</span></h2>
+          ${drafts.length ? html`<ol class="review-list">${drafts.map((e) => html`<li class="review-item">
+            <div class="stack" style="gap:4px;min-width:0">
+              <strong>${e.title}</strong>
+              <span class="small muted">${fmtDate(e.startsAt)} · ${[e.city, e.venue].filter(Boolean).join(' ') || '장소 미정'}${e.ticketOpenAt ? ` · 티켓 오픈 ${fmtDateTime(e.ticketOpenAt)}` : ''}</span>
+              ${e.lineup ? html`<span class="small">${e.lineup}</span>` : ''}
+              ${e.reviewNote ? html`<span class="small faint">${e.reviewNote}</span>` : ''}
+              <span class="row small" style="gap:10px"><span class="pill pill-soft">${KIND_LABEL[e.kind]}</span>${e.isVisit ? html`<span class="pill pill-visit">내한</span>` : ''}${srcLink(e.sourceUrl)}</span>
+            </div>
+            <div class="actions">
+              <button type="button" class="btn btn-primary btn-sm" data-action="publish" data-id="${e.id}">${icon('check', 16)} 공개</button>
+              <a class="btn btn-outline btn-sm" href="#/admin/events/${e.id}">고치기</a>
+              <button type="button" class="btn btn-ghost btn-sm" data-action="drop-draft" data-id="${e.id}">버리기</button>
+            </div>
+          </li>`)}</ol>` : html`<p class="muted small">검토할 초안이 없어요.</p>`}
+        </div>
+        <div class="card stack">
+          <h2>사용자 제보 <span class="faint small">${subs.length}</span></h2>
+          ${subs.length ? html`<ol class="review-list">${subs.map((r) => html`<li class="review-item">
+            <div class="stack" style="gap:4px;min-width:0">
+              <strong>${r.title}</strong>
+              <span class="small muted">${[r.startsOn && fmtDate(r.startsOn), [r.city, r.venue].filter(Boolean).join(' '), r.ticketOpenAt && `티켓 오픈 ${fmtDateTime(r.ticketOpenAt)}`].filter(Boolean).join(' · ') || '날짜 · 장소 미입력'}</span>
+              ${r.artist ? html`<span class="small">${r.artist}</span>` : ''}
+              ${r.memo ? html`<span class="small faint">“${r.memo}”</span>` : ''}
+              <span class="row small" style="gap:10px"><span class="pill pill-soft">${KIND_LABEL[r.kind]}</span>${r.isVisit ? html`<span class="pill pill-visit">내한</span>` : ''}${srcLink(r.sourceUrl)}${r.ticketUrl ? html`<a href="${r.ticketUrl}" target="_blank" rel="noopener">${icon('ticket', 13)} 예매처</a>` : ''}<span class="faint">${timeAgo(r.createdAt)}</span></span>
+            </div>
+            <div class="actions">
+              <button type="button" class="btn btn-primary btn-sm" data-action="approve-sub" data-id="${r.id}">${icon('check', 16)} 공연으로 등록</button>
+              <button type="button" class="btn btn-ghost btn-sm" data-action="reject-sub" data-id="${r.id}">반려</button>
+            </div>
+          </li>`)}</ol>` : html`<p class="muted small">새 제보가 없어요.</p>`}
+        </div>`,
+      actions: {
+        async publish(el) {
+          await api.adminSetPublished(el.dataset.id, true);
+          toast('공개했어요. 다음 알림 계산 때 관심 있는 사람들에게 알려요.', 'ok');
+          rerender();
+        },
+        async 'drop-draft'(el) {
+          if (!confirm('이 초안을 버릴까요?')) return;
+          await api.adminDeleteEvent(el.dataset.id);
+          toast('초안을 버렸어요.');
+          rerender();
+        },
+        async 'approve-sub'(el) {
+          const ev = await api.adminApproveSubmission(el.dataset.id);
+          toast('공연으로 등록했어요. 날짜 · 시간을 확인해 주세요.', 'ok');
+          navigate(`/admin/events/${ev.id}`);
+        },
+        async 'reject-sub'(el) {
+          await api.adminRejectSubmission(el.dataset.id);
+          toast('반려했어요.');
           rerender();
         },
       },
@@ -512,6 +582,8 @@ async function eventEditor({ api, id, query, rerender }) {
       <div class="field"><label for="ev-cover">대표 이미지 주소</label><input id="ev-cover" class="input" name="cover" value="${v.coverUrl || ''}" list="cover-list" placeholder="/assets/img/hero.jpg 또는 https://...">
         <datalist id="cover-list">${COVERS.map((c) => html`<option value="${c}"></option>`)}</datalist></div>
       <div class="field"><label for="ev-ticket">예매 페이지 주소</label><input id="ev-ticket" class="input" name="ticket" type="url" value="${v.ticketUrl || ''}" placeholder="https://..."></div>
+      <div class="field"><label for="ev-topen">티켓 오픈 (한국 시간)</label><input id="ev-topen" class="input" type="datetime-local" name="ticketOpen" value="${toLocalInput(v.ticketOpenAt)}"><span class="hint">넣으면 하루 전 · 1시간 전에 알림이 가요</span></div>
+      <div class="field"><label for="ev-src">출처 (공지 · 기사 링크)</label><input id="ev-src" class="input" name="sourceUrl" type="url" value="${v.sourceUrl || ''}" placeholder="https://..."></div>
     </div>
     ${v.source === 'kopis' ? html`<p class="faint small">KOPIS 에서 자동으로 가져온 공연이에요. 날짜·장소·포스터는 매일 KOPIS 기준으로 다시 맞춰져요.</p>` : ''}
     <div class="field"><label for="ev-desc">소개</label><textarea id="ev-desc" class="textarea" name="description">${v.description || ''}</textarea></div>
@@ -607,6 +679,7 @@ async function eventEditor({ api, id, query, rerender }) {
           published: fd.get('published') === 'on',
           isVisit: fd.get('isVisit') === 'on', ticketUrl: String(fd.get('ticket') || '').trim(),
           genres: fd.getAll('genres'), lineup: String(fd.get('lineup') || '').trim().slice(0, 1000),
+          ticketOpenAt: fd.get('ticketOpen') ? fromLocalInput(fd.get('ticketOpen')) : null, sourceUrl: String(fd.get('sourceUrl') || '').trim(),
         });
         toast('공연을 저장했어요.', 'ok');
         if (isNew) navigate(`/admin/events/${newId}`); else rerender();

@@ -1,7 +1,7 @@
 // 데모 백엔드 — 브라우저 localStorage 에 데이터를 저장해요.
 // 서버 없이 앱 전체를 체험하고 테스트할 수 있어요. 다른 탭과도 실시간으로 동기화돼요.
 import { buildDemoDb } from './seed.js';
-import { shapeEventSummary, shapeEventDetail, shapeSession, shapeSong, indexBy, groupSegments, canPremium, shapeAttendance, attendanceRow, shapeArtist, shapeNotification } from './shape.js';
+import { shapeEventSummary, shapeEventDetail, shapeSession, shapeSong, indexBy, groupSegments, canPremium, shapeAttendance, attendanceRow, shapeArtist, shapeNotification, shapeSubmission, submissionRow, eventFromSubmission } from './shape.js';
 import { norm, artistIndex, matchEvents } from '../taste.js';
 import { demoAttendances, demoTasteData } from './seed.js';
 import { UserError, uid } from '../util.js';
@@ -290,6 +290,50 @@ export const demo = {
     return tick();
   },
 
+  // ---------- 공연 제보 · 검토 ----------
+  async submitEvent(input) {
+    const u = requireUser();
+    const row = submissionRow(input);
+    if (row.title.length < 2) throw new UserError('공연 이름을 적어 주세요.');
+    if (!row.source_url) throw new UserError('공지나 기사 링크(https://…)를 넣어 주세요. 확인할 때 꼭 필요해요.');
+    db.submissions = db.submissions || [];
+    db.submissions.push({ id: uid('sub'), user_id: u.id, status: 'pending', event_id: null, created_at: new Date().toISOString(), ...row });
+    save();
+    return tick();
+  },
+  async listMySubmissions() {
+    const u = me();
+    return tick(u ? (db.submissions || []).filter((r) => r.user_id === u.id).sort((a, b) => b.created_at.localeCompare(a.created_at)).map(shapeSubmission) : []);
+  },
+  async adminListSubmissions() {
+    requireAdmin();
+    return tick((db.submissions || []).filter((r) => r.status === 'pending').map(shapeSubmission));
+  },
+  async adminApproveSubmission(id) {
+    requireAdmin();
+    const s = (db.submissions || []).find((r) => r.id === id);
+    if (!s) throw new UserError('제보를 찾을 수 없어요.');
+    const ev = { id: uid('e'), ...eventFromSubmission(s, `r-${Date.now().toString(36)}`), created_at: new Date().toISOString() };
+    db.events.push(ev);
+    Object.assign(s, { status: 'approved', event_id: ev.id });
+    save();
+    return tick({ id: ev.id, slug: ev.slug });
+  },
+  async adminRejectSubmission(id) {
+    requireAdmin();
+    const s = (db.submissions || []).find((r) => r.id === id);
+    if (s) s.status = 'rejected';
+    save();
+    return tick();
+  },
+  async adminSetPublished(eventId, on) {
+    requireAdmin();
+    const e = db.events.find((x) => x.id === eventId);
+    if (e) e.published = !!on;
+    save();
+    return tick();
+  },
+
   // ---------- 자동 수집 (데모에서는 안내만) ----------
   async getSyncStatus() { return tick(null); },
   async runKopisSync() { throw new UserError('데모 모드에서는 자동 수집을 실행할 수 없어요. Supabase 에 연결하면 매일 자동으로 가져와요.'); },
@@ -421,6 +465,7 @@ export const demo = {
       published: ev.published !== false,
       is_visit: !!ev.isVisit, ticket_url: /^https?:\/\//i.test(ev.ticketUrl || '') ? ev.ticketUrl : null,
       genres: ev.genres || [], lineup: ev.lineup || null,
+      ticket_open_at: ev.ticketOpenAt || null, source_url: /^https?:\/\//i.test(ev.sourceUrl || '') ? ev.sourceUrl : null,
     });
     save();
     return tick(row.id);

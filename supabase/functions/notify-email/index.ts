@@ -1,6 +1,7 @@
 // 맞춤 공연 이메일 알림
 // - mode "instant": 좋아하는 아티스트 공연이 새로 생기면 (매일 오전 6시)
 // - mode "digest" : 이번 주 취향 공연 모아 보기 (매주 월요일 오전 9시)
+// - mode "ticket" : 티켓 오픈 하루 전 · 1시간 전 (매시간)
 // 필요한 비밀값: RESEND_API_KEY, MAIL_FROM (예: 셋리뷰 <alert@내도메인>), SITE_URL (예: https://setreview.vercel.app)
 // 비밀값이 없으면 메일을 보내지 않고 기다려요 (알림은 앱 안 알림함에는 그대로 쌓여요).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
@@ -48,7 +49,7 @@ async function send(to: string, subject: string, html: string) {
   if (!res.ok) throw new Error(`메일 발송 실패 (${res.status}): ${(await res.text()).slice(0, 200)}`);
 }
 
-async function run(mode: 'instant' | 'digest') {
+async function run(mode: 'instant' | 'digest' | 'ticket') {
   if (!Deno.env.get('RESEND_API_KEY') || !Deno.env.get('MAIL_FROM')) {
     return { mode, waiting: true, message: 'RESEND_API_KEY · MAIL_FROM 이 없어서 메일은 보내지 않았어요. 알림함에는 쌓여 있어요.' };
   }
@@ -60,8 +61,10 @@ async function run(mode: 'instant' | 'digest') {
     .gt('events.starts_at', new Date().toISOString())
     .order('created_at', { ascending: false })
     .limit(2000);
-  // 주간 모음에는 이미 바로 메일로 받은 소식은 빼요
-  q = mode === 'instant' ? q.eq('kind', 'artist').is('emailed_at', null) : q.is('digested_at', null).is('emailed_at', null);
+  // 주간 모음에는 이미 바로 메일로 받은 소식과 티켓 알림은 빼요
+  q = mode === 'instant' ? q.eq('kind', 'artist').is('emailed_at', null)
+    : mode === 'ticket' ? q.in('kind', ['ticket_d1', 'ticket_h1']).is('emailed_at', null)
+    : q.in('kind', ['artist', 'genre']).is('digested_at', null).is('emailed_at', null);
   const { data, error } = await q;
   if (error) throw error;
   const rows = (data || []) as unknown as Row[];
@@ -74,8 +77,8 @@ async function run(mode: 'instant' | 'digest') {
   for (const [userId, list] of byUser) {
     try {
       const { data: prof } = await db.from('profiles').select('nickname, email_alerts, weekly_digest').eq('id', userId).maybeSingle();
-      const wants = mode === 'instant' ? prof?.email_alerts : prof?.weekly_digest;
-      const col = mode === 'instant' ? 'emailed_at' : 'digested_at';
+      const wants = mode === 'digest' ? prof?.weekly_digest : prof?.email_alerts;
+      const col = mode === 'digest' ? 'digested_at' : 'emailed_at';
       const ids = list.map((r) => r.id);
       if (wants) {
         const { data: u } = await db.auth.admin.getUserById(userId);
@@ -85,16 +88,20 @@ async function run(mode: 'instant' | 'digest') {
           const top = list.slice(0, 12);
           const subject = mode === 'instant'
             ? `[셋리뷰] ${top[0].reason?.replace(/ 출연$/, '') || '좋아하는 아티스트'} 공연 소식${list.length > 1 ? ` 외 ${list.length - 1}건` : ''}`
+            : mode === 'ticket'
+            ? `[셋리뷰] ${top[0].kind === 'ticket_h1' ? '곧 티켓 오픈' : '티켓 오픈 예정'} · ${top[0].events.title}${list.length > 1 ? ` 외 ${list.length - 1}건` : ''}`
             : `[셋리뷰] 이번 주 내 취향 공연 ${list.length}건`;
           const html = mode === 'instant'
             ? mail(nick, '좋아하는 아티스트의 공연이 올라왔어요', '티켓팅 일정은 예매처에서 꼭 확인해 주세요.', top)
+            : mode === 'ticket'
+            ? mail(nick, '곧 티켓이 열려요', '예매처에 미리 로그인해 두고, 결제 수단도 확인해 두세요. 정확한 오픈 시간은 예매처 공지를 꼭 다시 확인해 주세요.', top)
             : mail(nick, '이번 주 내 취향 공연', '좋아하는 아티스트와 장르에 맞는 새 공연을 모았어요.', top);
           await send(to, subject, html);
           sent++;
         }
       }
       // 보낸 것은 다시 보내지 않도록 표시. 바로 알림을 끈 사람은 주간 모음으로 넘겨요
-      if (wants || mode === 'digest') await db.from('notifications').update({ [col]: new Date().toISOString() }).in('id', ids);
+      if (wants || mode !== 'instant') await db.from('notifications').update({ [col]: new Date().toISOString() }).in('id', ids);
     } catch (e) {
       errors.push((e as Error).message);
     }
@@ -108,7 +115,7 @@ Deno.serve(async (req) => {
   const { data: ok } = await db.rpc('verify_sync_secret', { p: secret });
   if (ok !== true) return json({ error: '권한이 없어요.' }, 401);
   const body = await req.json().catch(() => ({}));
-  const mode = body?.mode === 'digest' ? 'digest' : 'instant';
+  const mode = body?.mode === 'digest' ? 'digest' : body?.mode === 'ticket' ? 'ticket' : 'instant';
   try {
     return json(await run(mode));
   } catch (e) {

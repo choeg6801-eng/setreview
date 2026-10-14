@@ -1,6 +1,6 @@
 // 공연 상세: 예상 셋리스트 · 하이라이트/떼창 구간 · 실시간 싱크 · 제보
 import { html, toast, fmtDate, fmtTime, dday, parseMmss, timeAgo, UserError } from '../util.js';
-import { songRow, statusPill, progressBar, art, backLink, emptyState, KIND_LABEL, linksRow } from '../components.js';
+import { songRow, statusPill, progressBar, art, backLink, emptyState, KIND_LABEL, linksRow, ticketInfo } from '../components.js';
 import { icon } from '../icons.js';
 import { premium } from '../state.js';
 import { navigate } from '../router.js';
@@ -141,6 +141,7 @@ export default async function eventView(ctx) {
           <div class="ev-facts">
             <span>${icon('calendar', 16)} ${fmtDate(ev.startsAt)} ${fmtTime(ev.startsAt)}${ev.status === 'upcoming' ? ` · ${dday(ev.startsAt)}` : ''}</span>
             <span>${icon('pin', 16)} ${[ev.city, ev.venue].filter(Boolean).join(' · ') || '장소 미정'}</span>
+            ${(() => { const t = ticketInfo(ev); return t ? html`<span class="ticket-fact ${t.soon ? 'soon' : ''}">${icon('ticket', 16)} ${t.upcoming ? html`<strong>${t.label}</strong> · ${t.when}` : html`${t.label} · ${t.when}`}</span>` : ''; })()}
           </div>
           ${ev.description ? html`<p class="muted ev-desc">${ev.description}</p>` : ''}
           <div class="row">
@@ -152,6 +153,7 @@ export default async function eventView(ctx) {
             <button type="button" class="btn btn-outline" data-action="share">${icon('share', 18)} 공유</button>
           </div>
           ${ev.source === 'kopis' ? html`<p class="faint small">일정 정보는 KOPIS(공연예술통합전산망)에서 자동으로 가져와요. 정확한 시간과 좌석은 예매처에서 확인해 주세요.</p>` : ''}
+          ${ev.sourceUrl ? html`<p class="faint small">${ev.source === 'report' ? '사용자 제보로 등록한 공연이에요. ' : ''}정확한 일정과 티켓 오픈 시간은 <a href="${ev.sourceUrl}" target="_blank" rel="noopener">공식 공지 ${icon('external', 12)}</a>와 예매처에서 다시 확인해 주세요.</p>` : ''}
           ${allPredicted.length ? html`<div class="ev-progress">
             <span class="small">${loggedIn ? '나의 예습 진행률' : '로그인하면 곡마다 예습 완료를 체크할 수 있어요'}</span>
             <span class="mono small accent">${loggedIn ? `${done} / ${allPredicted.length}곡` : ''}</span>
@@ -160,7 +162,7 @@ export default async function eventView(ctx) {
         </div>
       </section>
       <div class="container">
-        ${ev.performances.length ? ev.performances.map(perfBlock) : html`<div class="card" style="margin-top:24px"><p class="muted">${ev.source === 'kopis' ? '예상 셋리스트는 공연이 가까워지면 준비돼요. 지금은 일정과 예매 정보만 있어요. 내 공연에 담아 두면 D-day를 챙겨 드려요.' : '출연진을 준비하고 있어요.'}</p></div>`}
+        ${ev.performances.length ? ev.performances.map(perfBlock) : html`<div class="card" style="margin-top:24px"><p class="muted">${ev.source !== 'manual' ? '예상 셋리스트는 공연이 가까워지면 준비돼요. 지금은 일정과 예매 정보만 있어요. 내 공연에 담아 두면 티켓 오픈과 D-day를 챙겨 드려요.' : '출연진을 준비하고 있어요.'}</p></div>`}
         ${!prem ? html`<div class="card" style="margin-top:28px">
           <div class="row between">
             <div class="stack" style="gap:4px">
