@@ -604,3 +604,9 @@ body.is-loading::before { content: ""; position: fixed; top: 0; left: 0; height:
 /* 예상 셋리스트 근거 */
 .setlist-basis { display: flex; gap: 6px; align-items: flex-start; margin: 0; padding: 10px 16px; border-bottom: 1px solid var(--line, rgba(255,255,255,.08)); line-height: 1.5; }
 .setlist-basis svg { flex: none; margin-top: 3px; }
+
+/* 예습 플리 한 번에 듣기 */
+.play-panel { display: flex; flex-direction: column; gap: 14px; margin-bottom: 16px; padding: 18px; }
+.play-opt { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.play-opt:last-of-type { border-bottom: 0; padding-bottom: 0; }
+@media (max-width: 720px) { .play-opt { flex-direction: column; align-items: flex-start; } }

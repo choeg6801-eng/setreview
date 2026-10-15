@@ -8,6 +8,7 @@ import { spotifyEnabled, getToken, connectSpotify, takePending, savePlaylist } f
 import { footer } from './footer.js';
 
 const openSongs = new Set();
+const openPlay = new Set(); // '예습 플리 듣기' 패널을 연 무대
 const savedLinks = new Map(); // performanceId:which → Spotify 주소
 
 const norm = (s) => String(s || '').trim().toLowerCase();
@@ -34,6 +35,42 @@ export default async function eventView(ctx) {
   const allPredicted = [...new Set(ev.performances.flatMap((p) => p.predicted.map((i) => i.song?.id).filter(Boolean)))];
   const done = allPredicted.filter((id) => state.progress.has(id)).length;
 
+  // 예습 플리를 다른 앱으로: 유튜브 전곡 재생 · 곡 목록 복사(다른 앱으로 옮기기) · Spotify 저장
+  function playPanel(p, items, which) {
+    const ids = [...new Set(items.map((it) => it.song?.youtubeId).filter(Boolean))].slice(0, 50);
+    const missing = items.length - ids.length;
+    const ytUrl = ids.length ? `https://www.youtube.com/watch_videos?video_ids=${ids.join(',')}` : '';
+    return html`<div class="play-panel card">
+      <div class="play-opt">
+        <div class="stack" style="gap:2px">
+          <strong>유튜브 · 유튜브 뮤직</strong>
+          <span class="small muted">${ids.length
+            ? `${ids.length}곡을 순서대로 이어 듣는 재생목록을 바로 열어요. 유튜브 앱에서 '저장'을 누르면 내 재생목록에 남아요.${missing > 0 ? ` (아직 못 찾은 ${missing}곡은 빠져 있어요)` : ''}`
+            : '곡마다 공식 음원을 찾고 있어요. 준비되면 여기서 한 번에 재생할 수 있어요.'}</span>
+        </div>
+        ${ids.length ? html`<a class="btn btn-primary btn-sm" href="${ytUrl}" target="_blank" rel="noopener">${icon('external', 14)} 전곡 재생</a>` : ''}
+      </div>
+      <div class="play-opt">
+        <div class="stack" style="gap:2px">
+          <strong>애플 뮤직 · 스포티파이 · 유튜브 뮤직으로 옮기기</strong>
+          <span class="small muted">곡 목록을 복사한 뒤 TuneMyMusic(무료)에서 '텍스트 붙여넣기'를 고르면 내 계정에 플레이리스트로 만들어져요.</span>
+        </div>
+        <div class="row" style="gap:6px">
+          <button type="button" class="btn btn-outline btn-sm" data-action="copy-list" data-perf="${p.id}" data-which="${which}">${icon('check', 14)} 곡 목록 복사</button>
+          <a class="btn btn-outline btn-sm" href="https://www.tunemymusic.com/ko/transfer" target="_blank" rel="noopener">TuneMyMusic ${icon('external', 13)}</a>
+        </div>
+      </div>
+      <div class="play-opt">
+        <div class="stack" style="gap:2px">
+          <strong>Spotify에 바로 저장 <span class="pill pill-soft">베타</span></strong>
+          <span class="small muted">Spotify 계정을 연결하면 플레이리스트를 바로 만들어요.</span>
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" data-action="spotify-save" data-perf="${p.id}" data-which="${which}">${icon('music', 14)} Spotify에 저장</button>
+      </div>
+      <p class="faint small">멜론은 외부에서 플레이리스트를 만드는 방법을 열어 두지 않아서, 곡을 누르면 나오는 '멜론' 버튼으로 한 곡씩 열 수 있어요.</p>
+    </div>`;
+  }
+
   function perfBlock(p) {
     const predictedIds = new Set(p.predicted.map((i) => i.song?.id).filter(Boolean));
     const predictedTitles = new Set(p.predicted.map((i) => norm(i.title)));
@@ -55,6 +92,7 @@ export default async function eventView(ctx) {
       return '';
     };
     const remaining = p.predicted.filter((it) => !wasPlayed(it));
+    const playItems = hasActual && !isLive ? p.actual : p.predicted;
     const savedKey = (w) => savedLinks.get(`${p.id}:${w}`);
 
     return html`<section class="perf" aria-labelledby="perf-${p.id}">
@@ -64,11 +102,12 @@ export default async function eventView(ctx) {
         <span class="meta">${[p.stage, p.startsAt ? `${fmtTime(p.startsAt)}${p.endsAt ? '–' + fmtTime(p.endsAt) : ''}` : ''].filter(Boolean).join(' · ')}</span>
         <div class="perf-actions">
           ${(p.status === 'ended' || (hasActual && !isLive)) ? html`<a class="btn btn-soft btn-sm" href="#/recap/${encodeURIComponent(ev.slug)}/${encodeURIComponent(p.id)}">${icon('share', 16)} 복습 카드 만들기</a>` : ''}
-          <button type="button" class="btn btn-outline btn-sm" data-action="spotify-save" data-perf="${p.id}" data-which="${hasActual && !isLive ? 'actual' : 'predicted'}">
-            ${icon('music', 16)} Spotify에 저장 <span class="pill pill-soft">베타</span>
-          </button>
+          ${playItems.length ? html`<button type="button" class="btn ${openPlay.has(p.id) ? 'btn-soft' : 'btn-primary'} btn-sm" data-action="toggle-play" data-perf="${p.id}" aria-expanded="${openPlay.has(p.id) ? 'true' : 'false'}">
+            ${icon('music', 16)} ${hasActual && !isLive ? '셋리스트' : '예습 플리'} 한 번에 듣기
+          </button>` : ''}
         </div>
       </div>
+      ${openPlay.has(p.id) ? playPanel(p, playItems, hasActual && !isLive ? 'actual' : 'predicted') : ''}
 
       ${savedKey(hasActual && !isLive ? 'actual' : 'predicted') ? html`<div class="notice" style="margin-bottom:14px">
         Spotify 플레이리스트를 만들었어요. <a href="${savedKey(hasActual && !isLive ? 'actual' : 'predicted')}" target="_blank" rel="noopener">Spotify에서 열기 ${icon('external', 13)}</a>
@@ -187,6 +226,24 @@ export default async function eventView(ctx) {
       ${footer()}`,
 
     actions: {
+      'toggle-play'(el) {
+        const id = el.dataset.perf;
+        openPlay.has(id) ? openPlay.delete(id) : openPlay.add(id);
+        ctx.rerender();
+      },
+      async 'copy-list'(el) {
+        const p = ev.performances.find((x) => x.id === el.dataset.perf);
+        if (!p) return;
+        const items = el.dataset.which === 'actual' ? p.actual : p.predicted;
+        const text = items.map((it) => `${it.song?.originalArtist || p.artist.name} - ${it.song?.title || it.title}`).join('\n');
+        try {
+          await navigator.clipboard.writeText(text);
+          toast(`${items.length}곡 목록을 복사했어요. TuneMyMusic에서 붙여 넣어 주세요.`, 'ok');
+        } catch {
+          // 복사가 막힌 브라우저에서는 직접 고를 수 있게 보여 줘요
+          window.prompt('아래 목록을 길게 눌러 복사해 주세요.', text);
+        }
+      },
       'toggle-song'(el) {
         const id = el.dataset.id;
         openSongs.has(id) ? openSongs.delete(id) : openSongs.add(id);

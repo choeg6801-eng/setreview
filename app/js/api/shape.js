@@ -12,6 +12,7 @@ export function shapeSong(s, segs = []) {
     albumArtUrl: s.album_art_url || '',
     durationSec: s.duration_sec || null,
     spotifyId: s.spotify_id || null,
+    youtubeId: s.youtube_id || null,
     segments: segs
       .map((g) => ({ id: g.id, kind: g.kind, label: g.label || '', startSec: g.start_sec, endSec: g.end_sec, score: g.score }))
       .sort((a, b) => a.startSec - b.startSec),

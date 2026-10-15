@@ -274,3 +274,12 @@ supabase/
   functions/                결제 서버 함수 (토스페이먼츠)
 scripts/gen-seed-sql.mjs    샘플 데이터로 seed.sql 다시 만들기
 ```
+
+## 유튜브로 예습 플리 한 번에 듣기
+
+공연 화면의 **예습 플리 한 번에 듣기 → 전곡 재생**은 곡마다 찾아 둔 유튜브 공식 음원으로 재생목록을 바로 열어요.
+
+1. [Google Cloud 콘솔](https://console.cloud.google.com/)에서 프로젝트를 만들고 **YouTube Data API v3**를 사용 설정해요.
+2. **사용자 인증 정보 → API 키 만들기**로 키를 만들고, 키 제한에서 API를 YouTube Data API v3로만 제한해요.
+3. Supabase → Edge Functions → Secrets 에 `YOUTUBE_API_KEY` 로 넣어요.
+4. 매시간 4곡씩(하루 약 96곡, 무료 할당량 안) 담아 둔 공연 · 가까운 공연 곡부터 찾아요.

@@ -861,3 +861,9 @@ end $$;
 
 -- 내한 공연 안내 문구 (예: 첫 내한, 4년 만의 내한) — 공연 카드·상세 화면의 '내한' 배지에 보여요
 alter table public.events add column if not exists visit_note text check (char_length(visit_note) <= 40);
+
+-- 유튜브 공식 음원 영상 번호 (youtube-ids 함수가 채워요 · 공연 화면 '예습 플리 한 번에 듣기')
+alter table public.songs add column if not exists youtube_id text check (youtube_id ~ '^[A-Za-z0-9_-]{11}$');
+alter table public.songs add column if not exists youtube_checked_at timestamptz;
+-- songs_needing_youtube(p_limit) : 셋리스트에 든 곡 중 아직 찾지 않은 곡 (담아 둔 공연 · 가까운 공연 순)
+-- select cron.schedule('setreview-youtube-ids', '50 * * * *', $$ select net.http_post(... '/functions/v1/youtube-ids' ... body {"limit":4}) $$);
