@@ -867,3 +867,23 @@ alter table public.songs add column if not exists youtube_id text check (youtube
 alter table public.songs add column if not exists youtube_checked_at timestamptz;
 -- songs_needing_youtube(p_limit) : 셋리스트에 든 곡 중 아직 찾지 않은 곡 (담아 둔 공연 · 가까운 공연 순)
 -- select cron.schedule('setreview-youtube-ids', '50 * * * *', $$ select net.http_post(... '/functions/v1/youtube-ids' ... body {"limit":4}) $$);
+
+-- ============================================================
+-- 유료 전환: 무료는 예상 셋리스트 앞 5곡만 (2026-10-15)
+-- ============================================================
+alter policy "setlist read" on public.setlist_items
+  using (kind <> 'predicted' or position <= 5 or (select private.can_view_premium()));
+
+create or replace function public.predicted_counts(p_perf uuid[])
+returns table (performance_id uuid, n int)
+language sql stable security definer set search_path = public as $$
+  select s.performance_id, count(*)::int from public.setlist_items s
+  where s.performance_id = any (p_perf) and s.kind = 'predicted'
+  group by s.performance_id;
+$$;
+revoke all on function public.predicted_counts(uuid[]) from public;
+grant execute on function public.predicted_counts(uuid[]) to anon, authenticated;
+
+-- 떼창 구간 자동 채우기: 매시 7분 · 37분 (chant-fill, 60곡씩)
+-- select cron.schedule('setreview-chant-fill', '7,37 * * * *', $$ ... chant-fill {"limit":60} $$);
+-- 비용 절감: catalog-import 하루 1번(25 19 * * * UTC), album-art 매시 33분

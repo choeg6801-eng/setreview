@@ -1,6 +1,8 @@
 // 배경 음악: 화면을 옮겨 다녀도 끊기지 않도록 페이지에 하나만 만들어 둬요.
 // 브라우저는 사용자가 누르기 전에는 소리를 못 내게 막아서, 기본은 꺼짐이고
 // 한 번 켠 사람은 다음 방문 때 첫 터치·클릭에 이어서 재생돼요.
+import { config } from './config.js';
+
 export const BGM_SRC = '/assets/audio/bgm.mp3';
 export const BGM_TITLE = 'Scent of Success';
 const KEY = 'sr-bgm';
@@ -26,6 +28,7 @@ const saved = () => { try { return localStorage.getItem(KEY) === 'on'; } catch {
 let available = false;
 export const isAvailable = () => available;
 export async function checkAvailable() {
+  if (!config.bgm) return (available = false); // 파일을 올리기 전엔 확인 요청도 보내지 않아요
   try {
     const r = await fetch(BGM_SRC, { method: 'HEAD', cache: 'no-store' });
     available = r.ok && /audio|mpeg|octet/i.test(r.headers.get('content-type') || '');

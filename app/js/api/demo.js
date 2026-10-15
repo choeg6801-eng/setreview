@@ -124,11 +124,15 @@ export const demo = {
     if (!ev || (!ev.published && me()?.role !== 'admin')) return tick(null);
     const perfs = db.performances.filter((p) => p.event_id === ev.id);
     const perfIds = new Set(perfs.map((p) => p.id));
-    const items = db.setlist.filter((it) => perfIds.has(it.performance_id));
+    const all = db.setlist.filter((it) => perfIds.has(it.performance_id));
+    // 서버와 같게: 무료면 예상 셋리스트 앞 5곡만
+    const items = premium() ? all : all.filter((it) => it.kind !== 'predicted' || it.position <= 5);
+    const counts = {};
+    for (const it of all) if (it.kind === 'predicted') counts[it.performance_id] = (counts[it.performance_id] || 0) + 1;
     const songIds = new Set(items.map((it) => it.song_id).filter(Boolean));
     const songs = indexBy(db.songs.filter((s) => songIds.has(s.id)));
     const segs = premium() ? groupSegments(db.segments.filter((g) => songIds.has(g.song_id))) : {};
-    return tick(shapeEventDetail(ev, perfs, indexBy(db.artists), items, songs, segs));
+    return tick(shapeEventDetail(ev, perfs, indexBy(db.artists), items, songs, segs, Date.now(), counts));
   },
 
   subscribe(_eventId, fn) {

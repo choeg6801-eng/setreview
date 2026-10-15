@@ -89,6 +89,7 @@ export function segmentTimeline(song) {
         ${g.kind === 'chant' && g.score != null ? html`<span class="mono accent">지수 ${g.score}</span>` : ''}
       </li>`)}
     </ul>
+    ${segs.some((g) => g.auto) ? html`<p class="muted small seg-note">가사가 반복되는 후렴을 기준으로 자동 표시한 구간이에요. 실제 공연과 다르면 아래에서 제보해 주세요.</p>` : ''}
   </div>`;
 }
 

@@ -14,7 +14,7 @@ export function shapeSong(s, segs = []) {
     spotifyId: s.spotify_id || null,
     youtubeId: s.youtube_id || null,
     segments: segs
-      .map((g) => ({ id: g.id, kind: g.kind, label: g.label || '', startSec: g.start_sec, endSec: g.end_sec, score: g.score }))
+      .map((g) => ({ id: g.id, kind: g.kind, label: g.label || '', startSec: g.start_sec, endSec: g.end_sec, score: g.score, auto: g.source === 'auto' }))
       .sort((a, b) => a.startSec - b.startSec),
   };
 }
@@ -85,15 +85,18 @@ function shapeItem(it, songsById, segsBySong) {
   };
 }
 
-export function shapeEventDetail(ev, perfs, artistsById, items, songsById, segsBySong, now = Date.now()) {
+export function shapeEventDetail(ev, perfs, artistsById, items, songsById, segsBySong, now = Date.now(), counts = {}) {
   const summary = shapeEventSummary(ev, perfs, artistsById, now);
   const performances = [...perfs]
     .sort((a, b) => a.sort - b.sort)
     .map((p) => {
       const mine = items.filter((it) => it.performance_id === p.id);
       const byPos = (a, b) => a.position - b.position || String(a.played_at || '').localeCompare(String(b.played_at || ''));
+      const predictedCount = mine.filter((it) => it.kind === 'predicted').length;
       return {
         id: p.id,
+        // 무료 이용자는 앞 5곡만 받아요. 전체 곡 수는 잠금 안내에 써요.
+        predictedTotal: Math.max(predictedCount, counts[p.id] || 0),
         stage: p.stage || '',
         startsAt: p.starts_at,
         endsAt: p.ends_at,

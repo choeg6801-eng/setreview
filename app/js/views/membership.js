@@ -1,4 +1,4 @@
-// 멤버십 (월 12,000원)
+// 멤버십 (월 4,900원 · 가격은 app/config.js 의 membershipPrice)
 import { html, toast, fmtDate, won } from '../util.js';
 import { icon } from '../icons.js';
 import { config, isDemo } from '../config.js';
@@ -8,11 +8,11 @@ import { paymentsEnabled, startBilling, takeTossReturn, confirmBilling } from '.
 import { footer } from './footer.js';
 
 const FEATURES = [
+  ['예상 셋리스트 전곡 · 앙코르 순서', '무료는 앞 5곡'],
+  ['곡마다 하이라이트·떼창 구간과 떼창 지수', ''],
+  ['예습 플리 한 번에 듣기 (유튜브 · 다른 음악 앱으로 옮기기 · Spotify)', ''],
   ['내 공연 무제한 담기', '무료는 1개'],
-  ['곡마다 하이라이트·떼창 구간과 떼창 지수', '무료는 예상 셋리스트만'],
-  ['예상·실제 셋리스트 Spotify 저장 (베타)', ''],
-  ['공연 중 실시간 셋리스트', '무료도 볼 수 있어요'],
-  ['공유용 복습 카드', '무료도 만들 수 있어요'],
+  ['공연 중 실시간 셋리스트 · 복습 카드', '무료도 볼 수 있어요'],
 ];
 
 export default async function membership(ctx) {
@@ -63,11 +63,11 @@ export default async function membership(ctx) {
           <table class="compare">
             <thead><tr><th scope="col">기능</th><th scope="col">무료</th><th scope="col">멤버십</th></tr></thead>
             <tbody>
-              <tr><td>예상 셋리스트 · 음악 앱 링크</td><td>${icon('check', 18, '가능')}</td><td>${icon('check', 18, '가능')}</td></tr>
+              <tr><td>예상 셋리스트</td><td>앞 5곡</td><td>전곡</td></tr>
               <tr><td>실시간 셋리스트 · 현장 제보</td><td>${icon('check', 18, '가능')}</td><td>${icon('check', 18, '가능')}</td></tr>
               <tr><td>내 공연 담기</td><td>1개</td><td>무제한</td></tr>
               <tr><td>하이라이트 · 떼창 구간과 지수</td><td>${icon('lock', 16, '잠김')}</td><td>${icon('check', 18, '가능')}</td></tr>
-              <tr><td>Spotify 플레이리스트 저장 (베타)</td><td>${icon('lock', 16, '잠김')}</td><td>${icon('check', 18, '가능')}</td></tr>
+              <tr><td>예습 플리 한 번에 듣기</td><td>${icon('lock', 16, '잠김')}</td><td>${icon('check', 18, '가능')}</td></tr>
             </tbody>
           </table>
         </div>

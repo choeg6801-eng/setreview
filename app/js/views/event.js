@@ -3,6 +3,8 @@ import { html, toast, fmtDate, fmtTime, dday, parseMmss, timeAgo, UserError } fr
 import { songRow, statusPill, progressBar, art, backLink, emptyState, KIND_LABEL, linksRow, ticketInfo } from '../components.js';
 import { icon } from '../icons.js';
 import { premium } from '../state.js';
+import { config } from '../config.js';
+import { won } from '../util.js';
 import { navigate } from '../router.js';
 import { spotifyEnabled, getToken, connectSpotify, takePending, savePlaylist } from '../spotify.js';
 import { footer } from './footer.js';
@@ -103,7 +105,7 @@ export default async function eventView(ctx) {
         <div class="perf-actions">
           ${(p.status === 'ended' || (hasActual && !isLive)) ? html`<a class="btn btn-soft btn-sm" href="#/recap/${encodeURIComponent(ev.slug)}/${encodeURIComponent(p.id)}">${icon('share', 16)} 복습 카드 만들기</a>` : ''}
           ${playItems.length ? html`<button type="button" class="btn ${openPlay.has(p.id) ? 'btn-soft' : 'btn-primary'} btn-sm" data-action="toggle-play" data-perf="${p.id}" aria-expanded="${openPlay.has(p.id) ? 'true' : 'false'}">
-            ${icon('music', 16)} ${hasActual && !isLive ? '셋리스트' : '예습 플리'} 한 번에 듣기
+            ${icon(prem ? 'music' : 'lock', 16)} ${hasActual && !isLive ? '셋리스트' : '예습 플리'} 한 번에 듣기
           </button>` : ''}
         </div>
       </div>
@@ -155,7 +157,7 @@ export default async function eventView(ctx) {
 
       ${p.predicted.length ? html`<div class="setlist-card">
         <div class="setlist-head">
-          <h3>${hasActual ? '예상했던 셋리스트' : '예상 셋리스트'} <span class="muted small">· ${p.predicted.length}곡</span></h3>
+          <h3>${hasActual ? '예상했던 셋리스트' : '예상 셋리스트'} <span class="muted small">· ${p.predictedTotal}곡</span></h3>
           ${prem ? html`<span class="legend">
             <span><span class="seg-dot highlight" aria-hidden="true"></span>하이라이트</span>
             <span><span class="seg-dot chant" aria-hidden="true"></span>떼창 구간</span>
@@ -165,6 +167,16 @@ export default async function eventView(ctx) {
         <ol class="songs">
           ${p.predicted.map((it, i) => songRow(it, rowOpts(it, i + 1, { state: predictedState(it) })))}
         </ol>
+        ${p.predictedTotal > p.predicted.length ? html`<div class="locked-tail">
+          <ol class="songs ghost" aria-hidden="true">
+            ${Array.from({ length: Math.min(3, p.predictedTotal - p.predicted.length) }, (_, i) => html`<li class="song"><div class="song-main"><span class="song-no mono">${String(p.predicted.length + i + 1).padStart(2, '0')}</span><span class="ghost-bar"></span></div></li>`)}
+          </ol>
+          <div class="locked-cta">
+            ${icon('lock', 18)}
+            <p><strong>나머지 ${p.predictedTotal - p.predicted.length}곡</strong>과 앙코르 순서, 떼창 구간은 멤버십에서 볼 수 있어요.</p>
+            <a class="btn btn-primary btn-sm" href="#/membership">월 ${won(config.membershipPrice)}으로 전체 보기</a>
+          </div>
+        </div>` : ''}
       </div>` : (!hasActual ? (ev.predictedStatus === 'unavailable'
         ? html`<div class="card"><p class="muted">공개된 최근 셋리스트를 찾지 못해 예상 셋리스트를 만들지 못했어요.${ev.predictedNote ? ` (${ev.predictedNote})` : ''} 새 공연 소식이 나오면 다시 확인할게요.</p></div>`
         : html`<div class="card"><p class="muted">예상 셋리스트를 준비하고 있어요. 같은 투어의 최근 공연 곡을 바탕으로 만들고, <strong>내 공연에 담아 둔 공연은 몇 시간 안에 먼저</strong> 준비해 드려요.</p></div>`) : '')}
@@ -227,6 +239,7 @@ export default async function eventView(ctx) {
 
     actions: {
       'toggle-play'(el) {
+        if (!prem) { toast('예습 플리 한 번에 듣기는 멤버십 기능이에요.'); return navigate('/membership'); }
         const id = el.dataset.perf;
         openPlay.has(id) ? openPlay.delete(id) : openPlay.add(id);
         ctx.rerender();

@@ -1,7 +1,7 @@
 // 토스페이먼츠 자동결제 공통 코드 (Supabase Edge Function, Deno)
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2';
 
-export const PRICE = Number(Deno.env.get('MEMBERSHIP_PRICE') ?? '12000');
+export const PRICE = Number(Deno.env.get('MEMBERSHIP_PRICE') ?? '4900');
 export const ORDER_NAME = '셋리뷰 멤버십 1개월';
 const TOSS_API = 'https://api.tosspayments.com/v1';
 

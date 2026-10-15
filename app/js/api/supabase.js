@@ -178,12 +178,17 @@ export const supabaseBackend = {
     const perfs = check(await sb.from('performances').select('*').eq('event_id', ev.id));
     const items = await inQuery('setlist_items', 'performance_id', perfs.map((p) => p.id));
     const songIds = uniq(items.map((it) => it.song_id));
-    const [songs, segs, artists] = await Promise.all([
+    const [songs, segs, artists, counts] = await Promise.all([
       inQuery('songs', 'id', songIds),
       inQuery('song_segments', 'song_id', songIds), // 멤버십이 아니면 RLS 가 빈 목록을 돌려줘요
       inQuery('artists', 'id', uniq(perfs.map((p) => p.artist_id)), 'id, name'),
+      // 무료 이용자는 예상 셋리스트 앞 5곡만 받아서, 전체 곡 수는 따로 물어봐요 (실패해도 화면은 그대로)
+      perfs.length
+        ? sb.rpc('predicted_counts', { p_perf: perfs.map((p) => p.id) }).then((r) => r.data || [], () => [])
+        : [],
     ]);
-    return shapeEventDetail(ev, perfs, indexBy(artists), items, indexBy(songs), groupSegments(segs));
+    const countMap = Object.fromEntries(counts.map((c) => [c.performance_id, c.n]));
+    return shapeEventDetail(ev, perfs, indexBy(artists), items, indexBy(songs), groupSegments(segs), Date.now(), countMap);
   },
 
   subscribe(eventId, fn) {

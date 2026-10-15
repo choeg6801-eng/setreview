@@ -20,7 +20,7 @@ window.SETREVIEW_CONFIG = {
   tossClientKey: '',
 
   // 멤버십 가격 (원/월) — Edge Function 의 가격과 같게 맞춰 주세요.
-  membershipPrice: 12000,
+  membershipPrice: 4900,
 
   // 고객 문의 이메일
   supportEmail: '',
