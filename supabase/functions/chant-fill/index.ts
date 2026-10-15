@@ -3,7 +3,7 @@
 // 가사 본문은 저장하지 않고, 시작 · 끝 시간만 남겨요.
 //  - 하이라이트: 첫 번째 후렴
 //  - 떼창: 두 번째 이후 후렴(특히 마지막 후렴), 'oh-oh · la-la · 나나' 같은 따라 부르기 쉬운 구간
-//  - 떼창 지수: 반복 횟수 · 따라 부르기 쉬운 소리 · 여러 공연 셋리스트에 들어간 정도로 계산
+//  - 떼창 지수(배지)는 매기지 않아요 — 직접 넣은 값이나 현장 제보로만 매겨요
 // 예약 실행(x-sync-secret) 또는 운영자 로그인 토큰으로 불러요. 이미 구간이 있는 곡(직접 넣은 것 포함)은 건드리지 않아요.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
@@ -114,7 +114,7 @@ const jaccard = (a: Set<string>, b: Set<string>) => {
   return inter / (a.size + b.size - inter || 1);
 };
 
-function analyse(lines: Line[], songEnd: number, setlistCount: number) {
+function analyse(lines: Line[], songEnd: number) {
   const blocks = chorusBlocks(lines, songEnd);
   if (!blocks.length) return [];
   // 비슷한 덩어리끼리 묶어서 가장 많이 반복되는 것 = 후렴
@@ -126,24 +126,19 @@ function analyse(lines: Line[], songEnd: number, setlistCount: number) {
   groups.sort((a, b) => b.length * b[0].lines.size - a.length * a[0].lines.size);
   const chorus = groups[0];
   if (chorus.length < 2) return [];
-  const vocal = chorus.some((c) => c.vocal);
-  const base = 58 + Math.min(chorus.length - 1, 4) * 6 + (vocal ? 10 : 0) + Math.min(setlistCount, 5) * 2;
-  const segs: { kind: string; label: string; start_sec: number; end_sec: number; score: number | null }[] = [];
+  const segs: { kind: string; label: string; start_sec: number; end_sec: number; score: null }[] = [];
   const r = (x: number) => Math.max(0, Math.round(x));
   segs.push({ kind: 'highlight', label: '첫 후렴', start_sec: r(chorus[0].start), end_sec: r(chorus[0].end), score: null });
   chorus.slice(1).forEach((c, i, arr) => {
     const last = i === arr.length - 1;
-    segs.push({
-      kind: 'chant', label: last ? '마지막 후렴 · 다 같이' : '후렴 떼창',
-      start_sec: r(c.start), end_sec: r(c.end), score: Math.min(97, base + (last ? 6 : 0)),
-    });
+    segs.push({ kind: 'chant', label: last ? '마지막 후렴 · 다 같이' : '후렴 떼창', start_sec: r(c.start), end_sec: r(c.end), score: null });
   });
   // 후렴 밖의 'oh-oh' 같은 따라 부르기 구간도 따로
   for (const g of groups.slice(1)) {
     if (g.length >= 2 && g.some((c) => c.vocal)) {
       const c = g[g.length - 1];
       if (!segs.some((s) => Math.abs(s.start_sec - c.start) < 4)) {
-        segs.push({ kind: 'chant', label: '따라 부르기 (oh · la)', start_sec: r(c.start), end_sec: r(c.end), score: Math.min(92, base - 4) });
+        segs.push({ kind: 'chant', label: '따라 부르기 (oh · la)', start_sec: r(c.start), end_sec: r(c.end), score: null });
       }
       break;
     }
@@ -164,9 +159,8 @@ async function run(limit: number) {
     try {
       const lr = await findLyrics(r);
       if (lr?.syncedLyrics && !lr.instrumental) {
-        const { count } = await db.from('setlist_items').select('id', { count: 'exact', head: true }).eq('song_id', r.id);
         const songEnd = lr.duration || r.duration_sec || 600;
-        segs = analyse(parse(lr.syncedLyrics), songEnd, count || 0);
+        segs = analyse(parse(lr.syncedLyrics), songEnd);
       }
     } catch (e) {
       missed.push(`${r.artist_name} - ${r.title}: ${(e as Error).message}`);
@@ -174,7 +168,8 @@ async function run(limit: number) {
       continue; // 일시 오류는 다음에 다시
     }
     if (segs.length) {
-      const { error: insErr } = await db.from('song_segments').insert(segs.map((s) => ({ ...s, song_id: r.id, source: 'auto' })));
+      // 자동으로 찾은 건 '어디가 후렴인지'만 믿을 수 있어요. 떼창 지수(배지)는 직접 넣은 값이나 현장 제보로만 매겨요.
+      const { error: insErr } = await db.from('song_segments').insert(segs.map((s) => ({ ...s, score: null, song_id: r.id, source: 'auto' })));
       if (insErr) missed.push(`${r.title}: ${insErr.message}`); else filled++;
     } else {
       missed.push(`${r.artist_name} - ${r.title}`);

@@ -86,7 +86,8 @@ export function segmentTimeline(song) {
         <strong>${g.kind === 'chant' ? '떼창' : '하이라이트'}</strong>
         ${g.label ? html`<span>${g.label}</span>` : ''}
         <span class="mono">${mmss(g.startSec)}–${mmss(g.endSec)}</span>
-        ${g.kind === 'chant' && g.score != null ? html`<span class="mono accent">지수 ${g.score}</span>` : ''}
+        ${g.kind === 'chant' && g.score != null && !g.auto ? html`<span class="mono accent">지수 ${g.score}</span>` : ''}
+        ${g.auto ? html`<span class="pill pill-soft">자동 추정</span>` : ''}
       </li>`)}
     </ul>
     ${segs.some((g) => g.auto) ? html`<p class="muted small seg-note">가사가 반복되는 후렴을 기준으로 자동 표시한 구간이에요. 실제 공연과 다르면 아래에서 제보해 주세요.</p>` : ''}
