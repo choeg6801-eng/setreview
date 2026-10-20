@@ -32,7 +32,7 @@ async function isAuthorized(req: Request) {
 }
 
 const norm = (s: string) => (s || '').toLowerCase().replace(/\(.*?\)|\[.*?\]/g, ' ').replace(/[^0-9a-z가-힣ぁ-んァ-ン一-龥]+/g, '');
-const BAD = /\blive\b|라이브|cover|커버|karaoke|노래방|lyrics?\b|가사|remix|reaction|sped ?up|slowed|nightcore|instrumental|inst\b|mr\b|8d|1 ?hour|teaser|티저|직캠|fancam|piano|피아노|@|\bmnet\b|m countdown|엠카|music bank|뮤직뱅크|inkigayo|인기가요|음악중심|show!|스케치북|sketchbook|윤도현|유희열|\bkbs\b|\bmbc\b|\bsbs\b|\bebs\b|콘서트|concert|full ver|교차편집|stage mix/i;
+const BAD = /\blive\b|라이브|cover|커버|karaoke|노래방|lyrics?\b|가사|remix|reaction|sped ?up|slowed|nightcore|instrumental|inst\b|mr\b|8d|1 ?hour|teaser|티저|직캠|fancam|piano|피아노|@|\bmnet\b|m countdown|엠카|music bank|뮤직뱅크|inkigayo|인기가요|음악중심|show!|스케치북|sketchbook|윤도현|유희열|\bkbs\b|\bmbc\b|\bsbs\b|\bebs\b|콘서트|concert|full ver|교차편집|stage mix|페스티벌|festival|락페|페스타|축제|대학교|university|pre-?release|판타스틱|\b\d{6}\b|\(inst\.?\)|\binst\.|\bver\.?\)|직관|무대|stage\b|\bon air\b|session|세션|killing ?voice|킬링보이스|it'?s live|dingo|딩고/i;
 // 공식 음원 · 뮤직비디오를 올리는 유통사 · 기획사 채널
 const LABELS = /1thek|원더케이|stone ?music|genie ?music|지니뮤직|kakao ?(m|entertainment)|smtown|jyp ?entertainment|ygentertainment|hybe ?labels|ibighit|starship|amoeba ?culture|아메바컬쳐|cj ?enm|mnet ?k-?pop|ambition ?musik|aomg|hi-?lite|antenna|mystic ?story|rbw|wm ?entertainment|fnc|cube|pledis|kq ?entertainment|our ?bloom|magic ?strawberry|vibe ?music|sony ?music|universal ?music|warner ?music/i;
 // 영상 제목에 곡 제목이 '한 덩어리'로 들어 있는지 (Love Love Love ≠ Love Love Loveless)
@@ -49,6 +49,8 @@ function titleHit(videoTitle: string, title: string) {
 function coreStartsWith(videoTitle: string, title: string, artistKeys: string[]) {
   // 따옴표 안이 곡 제목이면 바로 OK (에픽하이 x 다비치 '미장센' Official M/V)
   for (const m of videoTitle.matchAll(/['"‘“「]([^'"’”」]+)['"’”」]/g)) if (norm(m[1]).startsWith(norm(title))) return true;
+  // 괄호 안이 곡 제목 그대로면 OK (land of night (새 어둠 새 눈))
+  for (const m of videoTitle.matchAll(/[(\[]([^)\]]+)[)\]]/g)) if (norm(m[1]) === norm(title)) return true;
   let v = videoTitle.toLowerCase().replace(/\(.*?\)|\[.*?\]|【.*?】|「|」|'|"|‘|’|“|”/g, ' ');
   v = v.replace(/official|music video|m\/v|\bmv\b|audio|video|lyrics?|visualizer|공식|뮤직비디오/g, ' ');
   let n = norm(v);
@@ -56,6 +58,8 @@ function coreStartsWith(videoTitle: string, title: string, artistKeys: string[])
   for (const k of artistKeys) if (k && n.includes(k) && !norm(title).includes(k)) n = n.replace(k, '');
   return n.startsWith(norm(title));
 }
+// 'land of night (새 어둠 새 눈)' 처럼 괄호 안에 한글 제목을 붙이는 공식 음원이 많아요 → 괄호 밖 · 괄호 안 모두 후보
+const titleVariants = (v: string) => [v, ...[...v.matchAll(/[(\[]([^)\]]+)[)\]]/g)].map((m) => m[1])].map(norm).filter(Boolean);
 const decode = (s: string) => s.replace(/&amp;/g, '&').replace(/&#39;/g, "'").replace(/&quot;/g, '"');
 
 type Row = { id: string; title: string; original_artist: string | null; artist_name: string; artist_ko: string | null; keys?: string[] };
@@ -80,6 +84,7 @@ function score(it: Item, r: Row, artist: string) {
   return s;
 }
 
+let debugLog: unknown[] | null = null;
 async function search(r: Row, key: string) {
   const artist = r.original_artist || r.artist_name;
   const q = `${artist} ${r.title}`;
@@ -91,9 +96,14 @@ async function search(r: Row, key: string) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.error?.message || `YouTube ${res.status}`);
   let best: Item | null = null, bs = 4; // 공식 채널(5점 이상)만
-  for (const it of (data.items || []) as Item[]) {
-    if (!it.id?.videoId) continue;
-    const s = score(it, r, artist);
+  const items = ((data.items || []) as Item[]).filter((it) => it.id?.videoId);
+  for (const [i, it] of items.entries()) {
+    let s = score(it, r, artist);
+    // 한글 제목 곡인데 공식 음원 채널이 영어 제목만 붙인 경우(After School Activity = 애프터스쿨 액티비티):
+    // 유튜브 검색 1위가 그 가수의 공식 음원 채널(Topic)이면 믿어요
+    if (s === -99 && i === 0 && /[가-힣]/.test(r.title) && !/[가-힣]/.test(it.snippet.title) && / - topic$/i.test(it.snippet.channelTitle)
+      && (r.keys || [r.artist_name]).map(norm).some((k) => k.length >= 2 && norm(it.snippet.channelTitle).includes(k)) && !BAD.test(it.snippet.title)) s = 7;
+    debugLog?.push({ song: r.title, video: decode(it.snippet.title), channel: decode(it.snippet.channelTitle), score: s });
     if (s > bs) { best = it; bs = s; }
   }
   return best?.id.videoId || null;
@@ -129,7 +139,9 @@ async function topicChannel(a: Art, key: string) {
     }
     if (found) break;
   }
-  await db.from('artists').update({ youtube_topic_id: found, youtube_topic_checked_at: new Date().toISOString() }).eq('id', a.id);
+  const now = new Date().toISOString();
+  await db.from('artists').update({ youtube_topic_id: found, youtube_topic_checked_at: now }).eq('id', a.id);
+  a.youtube_topic_id = found; a.youtube_topic_checked_at = now; // 이번 실행 안에서도 다시 찾지 않게
   return found;
 }
 
@@ -150,18 +162,20 @@ async function channelUploads(channelId: string, key: string) {
     if (!page) break;
   }
   uploadsCache.set(channelId, out);
+  debugLog?.push({ channel: channelId, uploads: out.length, sample: out.slice(0, 15).map((u) => u.title) });
   return out;
 }
 
 // Topic 채널 영상 제목은 곡 제목 그대로라서, 괄호(피처링 등)를 뺀 제목이 같은 걸 골라요
 function pickFromUploads(ups: Up[], title: string) {
   const t = norm(title);
-  return ups.find((u) => norm(u.title) === t)
+  return ups.find((u) => titleVariants(u.title).includes(t) && !BAD.test(u.title))
     || ups.find((u) => norm(u.title.replace(/\s*[-–]\s*(remaster|remastered|live|inst).*$/i, '')) === t && !BAD.test(u.title));
 }
 
-async function run(limit: number, events: string[] = [], budget = 400) {
+async function run(limit: number, events: string[] = [], budget = 400, debug = false) {
   units = 0;
+  debugLog = debug ? [] : null;
   const key = (Deno.env.get('YOUTUBE_API_KEY') || '').trim();
   if (!key) return { waiting: true, message: 'YOUTUBE_API_KEY 가 없어서 아직 찾지 않았어요.' };
   // 운영자가 특정 공연(events)을 고르면 그 공연 곡부터, 아니면 담아 둔 공연 · 가까운 공연 순서
@@ -206,7 +220,7 @@ async function run(limit: number, events: string[] = [], budget = 400) {
     if (/quota/i.test((e as Error).message)) return { found, viaTopic, searches, units, stopped: 'quota', missed: missed.slice(0, 20) };
     throw e;
   }
-  return { checked: rows.length, found, viaTopic, searches, units, missed: missed.slice(0, 20) };
+  return { checked: rows.length, found, viaTopic, searches, units, missed: missed.slice(0, 20), ...(debugLog ? { debug: debugLog } : {}) };
 }
 
 Deno.serve(async (req) => {
@@ -219,7 +233,7 @@ Deno.serve(async (req) => {
     const events = Array.isArray(body?.events) ? body.events.filter((x: unknown) => typeof x === 'string').slice(0, 20) : [];
     // 할당량 예산(실행당). 하루 무료 10,000점 → 매시간 400점이면 하루 9,600점
     const budget = Math.min(Math.max(Number(body?.budget) || 400, 100), 9000);
-    return json(await run(limit, events, budget));
+    return json(await run(limit, events, budget, body?.debug === true));
   } catch (e) {
     return json({ error: (e as Error).message }, 500);
   }
