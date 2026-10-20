@@ -903,3 +903,7 @@ language sql stable security definer set search_path to '' as $$
   limit p_limit
 $$;
 revoke all on function public.songs_needing_youtube_for_events(uuid[], integer) from public, anon, authenticated;
+
+-- 아티스트 공식 음원 채널(Topic) 캐시: 채널 곡 목록에서 한 번에 찾아 할당량을 아껴요
+alter table public.artists add column if not exists youtube_topic_id text, add column if not exists youtube_topic_checked_at timestamptz;
+-- cron setreview-youtube-ids: 매시 50분, body {"limit":60,"budget":400}
