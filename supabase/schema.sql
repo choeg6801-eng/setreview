@@ -887,3 +887,19 @@ grant execute on function public.predicted_counts(uuid[]) to anon, authenticated
 -- 떼창 구간 자동 채우기: 매시 7분 · 37분 (chant-fill, 60곡씩)
 -- select cron.schedule('setreview-chant-fill', '7,37 * * * *', $$ ... chant-fill {"limit":60} $$);
 -- 비용 절감: catalog-import 하루 1번(25 19 * * * UTC), album-art 매시 33분
+
+-- 특정 공연 곡부터 유튜브 공식 음원 찾기 (youtube-ids { events: [...] })
+create or replace function public.songs_needing_youtube_for_events(p_events uuid[], p_limit integer)
+returns table(id uuid, title text, original_artist text, artist_name text, artist_ko text)
+language sql stable security definer set search_path to '' as $$
+  select distinct on (s.id) s.id, s.title, s.original_artist, a.name, a.name_ko
+  from public.setlist_items i
+  join public.performances p on p.id = i.performance_id
+  join public.songs s on s.id = i.song_id
+  join public.artists a on a.id = s.artist_id
+  where p.event_id = any (p_events) and s.youtube_id is null and not s.hidden
+    and (s.youtube_checked_at is null or s.youtube_checked_at < now() - interval '30 days')
+  order by s.id
+  limit p_limit
+$$;
+revoke all on function public.songs_needing_youtube_for_events(uuid[], integer) from public, anon, authenticated;

@@ -31,22 +31,51 @@ async function isAuthorized(req: Request) {
 }
 
 const norm = (s: string) => (s || '').toLowerCase().replace(/\(.*?\)|\[.*?\]/g, ' ').replace(/[^0-9a-z가-힣ぁ-んァ-ン一-龥]+/g, '');
-const BAD = /\blive\b|라이브|cover|커버|karaoke|노래방|lyrics?\b|가사|remix|reaction|sped ?up|slowed|nightcore|instrumental|inst\b|mr\b|8d|1 ?hour|teaser|티저|직캠|fancam|piano|피아노/i;
+const BAD = /\blive\b|라이브|cover|커버|karaoke|노래방|lyrics?\b|가사|remix|reaction|sped ?up|slowed|nightcore|instrumental|inst\b|mr\b|8d|1 ?hour|teaser|티저|직캠|fancam|piano|피아노|@|\bmnet\b|m countdown|엠카|music bank|뮤직뱅크|inkigayo|인기가요|음악중심|show!|스케치북|sketchbook|윤도현|유희열|\bkbs\b|\bmbc\b|\bsbs\b|\bebs\b|콘서트|concert|full ver|교차편집|stage mix/i;
+// 공식 음원 · 뮤직비디오를 올리는 유통사 · 기획사 채널
+const LABELS = /1thek|원더케이|stone ?music|genie ?music|지니뮤직|kakao ?(m|entertainment)|smtown|jyp ?entertainment|ygentertainment|hybe ?labels|ibighit|starship|amoeba ?culture|아메바컬쳐|cj ?enm|mnet ?k-?pop|ambition ?musik|aomg|hi-?lite|antenna|mystic ?story|rbw|wm ?entertainment|fnc|cube|pledis|kq ?entertainment|our ?bloom|magic ?strawberry|vibe ?music|sony ?music|universal ?music|warner ?music/i;
+// 영상 제목에 곡 제목이 '한 덩어리'로 들어 있는지 (Love Love Love ≠ Love Love Loveless)
+function titleHit(videoTitle: string, title: string) {
+  const words = title.toLowerCase().replace(/\(.*?\)|\[.*?\]/g, ' ').split(/[^0-9a-z가-힣ぁ-んァ-ン一-龥]+/).filter(Boolean);
+  if (!words.length) return false;
+  const esc = words.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('[^0-9a-z가-힣ぁ-んァ-ン一-龥]*');
+  const isLatin = /[0-9a-z]$/.test(words[words.length - 1]);
+  // 영문 제목은 뒤에 글자가 더 붙으면 다른 곡, 한글 제목은 조사 없이 붙는 경우가 드물어 앞뒤만 느슨하게
+  const re = new RegExp(`(^|[^0-9a-z${isLatin ? '' : '가-힣'}])${esc}(?![0-9a-z${isLatin ? '' : '가-힣'}])`, 'i');
+  return re.test(videoTitle.toLowerCase());
+}
+// 영상 제목에서 가수 이름 · 괄호 · 'Official MV' 같은 꾸밈말을 뺀 나머지가 곡 제목으로 시작해야 해요 (이력서 ≠ 다시 쓰는 이력서)
+function coreStartsWith(videoTitle: string, title: string, artistKeys: string[]) {
+  // 따옴표 안이 곡 제목이면 바로 OK (에픽하이 x 다비치 '미장센' Official M/V)
+  for (const m of videoTitle.matchAll(/['"‘“「]([^'"’”」]+)['"’”」]/g)) if (norm(m[1]).startsWith(norm(title))) return true;
+  let v = videoTitle.toLowerCase().replace(/\(.*?\)|\[.*?\]|【.*?】|「|」|'|"|‘|’|“|”/g, ' ');
+  v = v.replace(/official|music video|m\/v|\bmv\b|audio|video|lyrics?|visualizer|공식|뮤직비디오/g, ' ');
+  let n = norm(v);
+  for (const k of [...artistKeys].sort((a, b) => b.length - a.length)) if (k && n.startsWith(k)) n = n.slice(k.length);
+  for (const k of artistKeys) if (k && n.includes(k) && !norm(title).includes(k)) n = n.replace(k, '');
+  return n.startsWith(norm(title));
+}
 const decode = (s: string) => s.replace(/&amp;/g, '&').replace(/&#39;/g, "'").replace(/&quot;/g, '"');
 
-type Row = { id: string; title: string; original_artist: string | null; artist_name: string; artist_ko: string | null };
+type Row = { id: string; title: string; original_artist: string | null; artist_name: string; artist_ko: string | null; keys?: string[] };
 type Item = { id: { videoId?: string }; snippet: { title: string; channelTitle: string } };
 
 function score(it: Item, r: Row, artist: string) {
   const vt = decode(it.snippet.title), ch = decode(it.snippet.channelTitle);
-  const t = norm(r.title), a = norm(artist), ako = norm(r.artist_ko || '');
-  const nvt = norm(vt), nch = norm(ch);
-  if (!t || !nvt.includes(t.slice(0, Math.max(4, Math.min(t.length, 12))))) return -99; // 곡 제목이 영상 제목에 있어야 해요
+  const t = norm(r.title);
+  // 아티스트 이름: 영문 · 한글 · 다른 표기(에픽하이 = Epik High) 모두로 채널을 알아봐요
+  const names = [...new Set([artist, r.artist_ko || '', ...(r.original_artist ? [] : r.keys || [])].map(norm).filter((k) => k.length >= 2))];
+  const nch = norm(ch);
+  if (!t || !titleHit(vt, r.title) || !coreStartsWith(vt, r.title, names)) return -99; // 곡 제목이 영상 제목에 그대로 있어야 해요
+  const chHit = names.some((k) => nch.includes(k));
+  // 공식 채널만 받아요: 유튜브 뮤직 음원(Topic) > 아티스트 채널 · VEVO > 유통사 · 기획사 채널. 팬 업로드는 받지 않아요.
   let s = 0;
-  if (/ - topic$/i.test(ch) && (nch.includes(a) || (ako && nch.includes(ako)))) s += 6; // 유튜브 뮤직 공식 음원
-  else if (nch.includes(a) || (ako && nch.includes(ako)) || /vevo$/i.test(ch)) s += 4;  // 아티스트 공식 채널
-  if (/official (audio|video|music video|mv)|m\/v|\bmv\b|공식/i.test(vt)) s += 2;
-  if (BAD.test(vt) && !BAD.test(r.title)) s -= 6;
+  if (/ - topic$/i.test(ch) && chHit) s = 10;
+  else if (chHit || /vevo$/i.test(ch)) s = 6;
+  else if (LABELS.test(ch)) s = 5;
+  else return -99;
+  if (/official (audio|video|music video|mv)|m\/v|\bmv\b|공식/i.test(vt)) s += 1;
+  if (BAD.test(vt) && !BAD.test(r.title)) s -= 8;
   return s;
 }
 
@@ -59,7 +88,7 @@ async function search(r: Row, key: string) {
   const res = await fetch(url, { signal: AbortSignal.timeout(12_000) });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.error?.message || `YouTube ${res.status}`);
-  let best: Item | null = null, bs = 1; // 공식 채널이거나 공식 영상 표시가 있는 것만
+  let best: Item | null = null, bs = 4; // 공식 채널(5점 이상)만
   for (const it of (data.items || []) as Item[]) {
     if (!it.id?.videoId) continue;
     const s = score(it, r, artist);
@@ -68,12 +97,22 @@ async function search(r: Row, key: string) {
   return best?.id.videoId || null;
 }
 
-async function run(limit: number) {
+async function run(limit: number, events: string[] = []) {
   const key = (Deno.env.get('YOUTUBE_API_KEY') || '').trim();
   if (!key) return { waiting: true, message: 'YOUTUBE_API_KEY 가 없어서 아직 찾지 않았어요.' };
-  const { data, error } = await db.rpc('songs_needing_youtube', { p_limit: limit });
+  // 운영자가 특정 공연(events)을 고르면 그 공연 곡부터, 아니면 담아 둔 공연 · 가까운 공연 순서
+  const { data, error } = events.length
+    ? await db.rpc('songs_needing_youtube_for_events', { p_events: events, p_limit: limit })
+    : await db.rpc('songs_needing_youtube', { p_limit: limit });
   if (error) throw new Error(error.message);
   const rows = (data || []) as Row[];
+  // 아티스트의 다른 표기(aliases)를 붙여요
+  const artistNames = [...new Set(rows.map((r) => r.artist_name))];
+  if (artistNames.length) {
+    const { data: arts } = await db.from('artists').select('name, name_ko, aliases').in('name', artistNames);
+    const byName = new Map((arts || []).map((a: { name: string; name_ko: string | null; aliases: string[] | null }) => [a.name, [a.name, a.name_ko || '', ...(a.aliases || [])]]));
+    for (const r of rows) r.keys = byName.get(r.artist_name) || [];
+  }
   let found = 0;
   const missed: string[] = [];
   for (const r of rows) {
@@ -96,7 +135,8 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const limit = Math.min(Math.max(Number(body?.limit) || 4, 1), 50);
-    return json(await run(limit));
+    const events = Array.isArray(body?.events) ? body.events.filter((x: unknown) => typeof x === 'string').slice(0, 20) : [];
+    return json(await run(limit, events));
   } catch (e) {
     return json({ error: (e as Error).message }, 500);
   }
