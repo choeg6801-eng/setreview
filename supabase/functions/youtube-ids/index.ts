@@ -48,7 +48,8 @@ function titleHit(videoTitle: string, title: string) {
 // 영상 제목에서 가수 이름 · 괄호 · 'Official MV' 같은 꾸밈말을 뺀 나머지가 곡 제목으로 시작해야 해요 (이력서 ≠ 다시 쓰는 이력서)
 function coreStartsWith(videoTitle: string, title: string, artistKeys: string[]) {
   // 따옴표 안이 곡 제목이면 바로 OK (에픽하이 x 다비치 '미장센' Official M/V)
-  for (const m of videoTitle.matchAll(/['"‘“「]([^'"’”」]+)['"’”」]/g)) if (norm(m[1]).startsWith(norm(title))) return true;
+  // (앨범 이름이 따옴표에 들어간 경우가 있어서 '사운드 오브 뮤직 pt.1' ≠ 사운드 오브 뮤직 — 그대로 같을 때만)
+  for (const m of videoTitle.matchAll(/['"‘“「]([^'"’”」]+)['"’”」]/g)) if (norm(m[1]) === norm(title)) return true;
   // 괄호 안이 곡 제목 그대로면 OK (land of night (새 어둠 새 눈))
   for (const m of videoTitle.matchAll(/[(\[]([^)\]]+)[)\]]/g)) if (norm(m[1]) === norm(title)) return true;
   let v = videoTitle.toLowerCase().replace(/\(.*?\)|\[.*?\]|【.*?】|「|」|'|"|‘|’|“|”/g, ' ');
@@ -97,13 +98,23 @@ async function search(r: Row, key: string) {
   if (!res.ok) throw new Error(data?.error?.message || `YouTube ${res.status}`);
   let best: Item | null = null, bs = 4; // 공식 채널(5점 이상)만
   const items = ((data.items || []) as Item[]).filter((it) => it.id?.videoId);
+  // 다른 검색 결과 제목에서 영어 제목을 알아내요: '고백(Go Back)', '자니(Johnny)' → go back, johnny
+  const kt = r.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const aliases = new Set<string>();
+  if (/[가-힣]/.test(r.title)) for (const it of items) {
+    const m = decode(it.snippet.title).match(new RegExp(kt + '\\s*[(（]\\s*([A-Za-z][A-Za-z0-9 \'’.&!?-]{1,40})\\s*[)）]'));
+    if (m) aliases.add(norm(m[1]));
+  }
   for (const [i, it] of items.entries()) {
     let s = score(it, r, artist);
     // 한글 제목 곡인데 공식 음원 채널이 영어 제목만 붙인 경우(After School Activity = 애프터스쿨 액티비티):
     // 유튜브 검색 1위가 그 가수의 공식 음원 채널(Topic)이면 믿어요
     if (s === -99 && i === 0 && /[가-힣]/.test(r.title) && !/[가-힣]/.test(it.snippet.title) && / - topic$/i.test(it.snippet.channelTitle)
       && (r.keys || [r.artist_name]).map(norm).some((k) => k.length >= 2 && norm(it.snippet.channelTitle).includes(k)) && !BAD.test(it.snippet.title)) s = 7;
-    debugLog?.push({ song: r.title, video: decode(it.snippet.title), channel: decode(it.snippet.channelTitle), score: s });
+    // 영어 제목만 붙은 공식 음원(Go Back (Feat. Jung In) = 고백)
+    if (s === -99 && aliases.size && / - topic$/i.test(it.snippet.channelTitle) && aliases.has(norm(decode(it.snippet.title))) && !BAD.test(it.snippet.title)
+      && (r.keys || [r.artist_name]).map(norm).some((k) => k.length >= 2 && norm(it.snippet.channelTitle).includes(k))) s = 8;
+    debugLog?.push({ id: it.id.videoId, song: r.title, video: decode(it.snippet.title), channel: decode(it.snippet.channelTitle), score: s });
     if (s > bs) { best = it; bs = s; }
   }
   return best?.id.videoId || null;
