@@ -910,3 +910,9 @@ alter table public.artists add column if not exists youtube_topic_id text, add c
 
 -- 곡의 다른 제목(유튜브 공식 음원이 영어 · 로마자 제목일 때: 출첵 = Chool Check)
 alter table songs add column if not exists alt_title text;
+
+-- 유튜브 영상 점검(youtube-audit): 한국 재생 가능 여부 · 버전 · 진짜 공식 음원인지 매주 다시 확인
+alter table songs add column if not exists youtube_verified_at timestamptz;
+alter table songs add column if not exists youtube_locked boolean not null default false; -- 운영자가 고른 영상 고정
+-- songs_with_youtube_upcoming_v2(): 다가오는 공연 셋리스트 곡 중 영상이 연결된 곡 (마이그레이션 참고)
+-- 예약: setreview-youtube-audit '5 * * * *' body {"fix":true,"budget":250} / youtube-ids budget 170
