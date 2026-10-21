@@ -907,3 +907,6 @@ revoke all on function public.songs_needing_youtube_for_events(uuid[], integer) 
 -- 아티스트 공식 음원 채널(Topic) 캐시: 채널 곡 목록에서 한 번에 찾아 할당량을 아껴요
 alter table public.artists add column if not exists youtube_topic_id text, add column if not exists youtube_topic_checked_at timestamptz;
 -- cron setreview-youtube-ids: 매시 50분, body {"limit":60,"budget":400}
+
+-- 곡의 다른 제목(유튜브 공식 음원이 영어 · 로마자 제목일 때: 출첵 = Chool Check)
+alter table songs add column if not exists alt_title text;

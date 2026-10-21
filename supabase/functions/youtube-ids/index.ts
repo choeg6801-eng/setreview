@@ -82,7 +82,7 @@ function romanize(s: string) {
 }
 const decode = (s: string) => s.replace(/&amp;/g, '&').replace(/&#39;/g, "'").replace(/&quot;/g, '"');
 
-type Row = { id: string; title: string; original_artist: string | null; artist_name: string; artist_ko: string | null; keys?: string[] };
+type Row = { id: string; title: string; original_artist: string | null; artist_name: string; artist_ko: string | null; keys?: string[]; alt?: string | null };
 type Item = { id: { videoId?: string }; snippet: { title: string; channelTitle: string } };
 
 function score(it: Item, r: Row, artist: string) {
@@ -107,7 +107,8 @@ function score(it: Item, r: Row, artist: string) {
 let debugLog: unknown[] | null = null;
 async function search(r: Row, key: string) {
   const artist = r.original_artist || r.artist_name;
-  const q = `${artist} ${r.title}`;
+  // 다른 제목(영어 등)을 알고 있으면 그걸로 찾아요 — 공식 음원이 영어 제목인 경우가 많아요
+  const q = `${artist} ${r.alt || r.title}`;
   units += 100;
   const url = `https://www.googleapis.com/youtube/v3/search?${new URLSearchParams({
     part: 'snippet', type: 'video', videoCategoryId: '10', maxResults: '8', regionCode: 'KR', q, key,
@@ -119,7 +120,7 @@ async function search(r: Row, key: string) {
   const items = ((data.items || []) as Item[]).filter((it) => it.id?.videoId);
   // 다른 검색 결과 제목에서 영어 제목을 알아내요: '고백(Go Back)', '자니(Johnny)' → go back, johnny
   const kt = r.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const aliases = new Set<string>();
+  const aliases = new Set<string>(r.alt ? [norm(r.alt)] : []);
   if (/[가-힣]/.test(r.title)) for (const it of items) {
     const m = decode(it.snippet.title).match(new RegExp(kt + '\\s*[(（]\\s*([A-Za-z][A-Za-z0-9 \'’.&!?-]{1,40})\\s*[)）]'));
     if (m) aliases.add(norm(m[1]));
@@ -201,11 +202,13 @@ async function channelUploads(channelId: string, key: string) {
 }
 
 // Topic 채널 영상 제목은 곡 제목 그대로라서, 괄호(피처링 등)를 뺀 제목이 같은 걸 골라요
-function pickFromUploads(ups: Up[], title: string) {
+function pickFromUploads(ups: Up[], title: string, alt?: string | null) {
   const t = norm(title);
+  const at = alt ? norm(alt) : '';
   const ro = /[가-힣]/.test(title) ? romanize(title) : '';
   return ups.find((u) => titleVariants(u.title).includes(t) && !BAD.test(u.title))
     || (ro.length >= 4 ? ups.find((u) => titleVariants(u.title).includes(ro) && !BAD.test(u.title)) : undefined)
+    || (at ? ups.find((u) => titleVariants(u.title).includes(at) && !BAD.test(u.title)) : undefined)
     || ups.find((u) => norm(u.title.replace(/\s*[-–]\s*(remaster|remastered|live|inst).*$/i, '')) === t && !BAD.test(u.title));
 }
 
@@ -228,6 +231,11 @@ async function run(limit: number, events: string[] = [], budget = 400, debug = f
     for (const a of (arts || []) as Art[]) artByName.set(a.name, a);
     for (const r of rows) { const a = artByName.get(r.artist_name); r.keys = a ? [a.name, a.name_ko || '', ...(a.aliases || [])] : []; }
   }
+  if (rows.length) {
+    const { data: alts } = await db.from('songs').select('id, alt_title').in('id', rows.map((r) => r.id)).not('alt_title', 'is', null);
+    const altById = new Map((alts || []).map((x: { id: string; alt_title: string }) => [x.id, x.alt_title]));
+    for (const r of rows) r.alt = altById.get(r.id) || null;
+  }
   let found = 0, viaTopic = 0, searches = 0;
   const missed: string[] = [];
   const save = (id: string, vid: string | null) => db.from('songs').update({ youtube_id: vid, youtube_checked_at: new Date().toISOString() }).eq('id', id);
@@ -239,8 +247,16 @@ async function run(limit: number, events: string[] = [], budget = 400, debug = f
       if (a && (a.youtube_topic_id || units + 100 <= budget)) {
         const ch = await topicChannel(a, key);
         if (ch) {
-          const hit = pickFromUploads(await channelUploads(ch, key), r.title);
+          const hit = pickFromUploads(await channelUploads(ch, key), r.title, r.alt);
           if (hit) { vid = hit.videoId; viaTopic++; }
+          // 곡 목록(uploads)에 안 보이는 옛 앨범 곡은 그 채널 안에서만 검색해요 (출첵 = Attendance Check)
+          else if (r.alt && units + 100 <= budget) {
+            const data = await yt('search', { part: 'snippet', type: 'video', channelId: ch, q: r.alt || r.title, maxResults: '10' }, key, 100);
+            const ups = ((data.items || []) as Item[]).filter((it) => it.id?.videoId).map((it) => ({ videoId: it.id.videoId!, title: decode(it.snippet.title) }));
+            debugLog?.push({ channelSearch: r.alt || r.title, results: ups.map((u) => u.title) });
+            const h2 = pickFromUploads(ups, r.title, r.alt);
+            if (h2) { vid = h2.videoId; viaTopic++; }
+          }
         }
       }
       // 2) 없으면 검색 (비싸서 실행당 예산 안에서만)
