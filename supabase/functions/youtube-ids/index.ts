@@ -61,6 +61,25 @@ function coreStartsWith(videoTitle: string, title: string, artistKeys: string[])
 }
 // 'land of night (새 어둠 새 눈)' 처럼 괄호 안에 한글 제목을 붙이는 공식 음원이 많아요 → 괄호 밖 · 괄호 안 모두 후보
 const titleVariants = (v: string) => [v, ...[...v.matchAll(/[(\[]([^)\]]+)[)\]]/g)].map((m) => m[1])].map(norm).filter(Boolean);
+// 한글 제목의 로마자 표기 (피타파 → pitapa, 길막 → gilmak). 공식 음원이 로마자 제목만 쓰는 경우가 있어요.
+const CHO = ['g','kk','n','d','tt','r','m','b','pp','s','ss','','j','jj','ch','k','t','p','h'];
+const JUNG = ['a','ae','ya','yae','eo','e','yeo','ye','o','wa','wae','oe','yo','u','wo','we','wi','yu','eu','ui','i'];
+const JONG = ['','k','k','k','n','n','n','t','l','k','m','l','l','l','p','l','m','p','p','t','t','ng','t','t','k','t','p','t'];
+const LINK: Record<number, string> = { 1: 'g', 4: 'n', 8: 'r', 16: 'm', 17: 'b', 19: 's', 21: 'ng', 22: 'j' };
+function romanize(s: string) {
+  let out = '';
+  const chars = [...s];
+  for (let i = 0; i < chars.length; i++) {
+    const c = chars[i].codePointAt(0)!;
+    if (c < 0xac00 || c > 0xd7a3) { out += chars[i]; continue; }
+    const n = c - 0xac00, jong = n % 28;
+    out += CHO[Math.floor(n / 588)] + JUNG[Math.floor((n % 588) / 28)];
+    const nx = chars[i + 1]?.codePointAt(0) ?? 0;
+    const nextVowel = nx >= 0xac00 && nx <= 0xd7a3 && Math.floor((nx - 0xac00) / 588) === 11;
+    if (jong) out += nextVowel ? (LINK[jong] ?? JONG[jong]) : JONG[jong];
+  }
+  return norm(out);
+}
 const decode = (s: string) => s.replace(/&amp;/g, '&').replace(/&#39;/g, "'").replace(/&quot;/g, '"');
 
 type Row = { id: string; title: string; original_artist: string | null; artist_name: string; artist_ko: string | null; keys?: string[] };
@@ -113,6 +132,10 @@ async function search(r: Row, key: string) {
       && (r.keys || [r.artist_name]).map(norm).some((k) => k.length >= 2 && norm(it.snippet.channelTitle).includes(k)) && !BAD.test(it.snippet.title)) s = 7;
     // 영어 제목만 붙은 공식 음원(Go Back (Feat. Jung In) = 고백)
     if (s === -99 && aliases.size && / - topic$/i.test(it.snippet.channelTitle) && aliases.has(norm(decode(it.snippet.title))) && !BAD.test(it.snippet.title)
+      && (r.keys || [r.artist_name]).map(norm).some((k) => k.length >= 2 && norm(it.snippet.channelTitle).includes(k))) s = 8;
+    // 로마자 제목만 붙은 공식 음원(PITAPA = 피타파)
+    if (s === -99 && / - topic$/i.test(it.snippet.channelTitle) && /[가-힣]/.test(r.title) && romanize(r.title).length >= 4
+      && titleVariants(decode(it.snippet.title)).includes(romanize(r.title)) && !BAD.test(it.snippet.title)
       && (r.keys || [r.artist_name]).map(norm).some((k) => k.length >= 2 && norm(it.snippet.channelTitle).includes(k))) s = 8;
     debugLog?.push({ id: it.id.videoId, song: r.title, video: decode(it.snippet.title), channel: decode(it.snippet.channelTitle), score: s });
     if (s > bs) { best = it; bs = s; }
@@ -180,7 +203,9 @@ async function channelUploads(channelId: string, key: string) {
 // Topic 채널 영상 제목은 곡 제목 그대로라서, 괄호(피처링 등)를 뺀 제목이 같은 걸 골라요
 function pickFromUploads(ups: Up[], title: string) {
   const t = norm(title);
+  const ro = /[가-힣]/.test(title) ? romanize(title) : '';
   return ups.find((u) => titleVariants(u.title).includes(t) && !BAD.test(u.title))
+    || (ro.length >= 4 ? ups.find((u) => titleVariants(u.title).includes(ro) && !BAD.test(u.title)) : undefined)
     || ups.find((u) => norm(u.title.replace(/\s*[-–]\s*(remaster|remastered|live|inst).*$/i, '')) === t && !BAD.test(u.title));
 }
 
