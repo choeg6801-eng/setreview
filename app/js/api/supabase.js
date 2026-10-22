@@ -188,7 +188,16 @@ export const supabaseBackend = {
         : [],
     ]);
     const countMap = Object.fromEntries(counts.map((c) => [c.performance_id, c.n]));
-    return shapeEventDetail(ev, perfs, indexBy(artists), items, indexBy(songs), groupSegments(segs), Date.now(), countMap);
+    // 관객이 함께 맞춘 셋리스트 · 내 체크 · 곡별 관객 떼창 표 (실패해도 화면은 그대로)
+    const perfIds = perfs.map((p) => p.id);
+    const soft = (q) => q.then((r) => r.data || [], () => []);
+    const [crowdRows, mine, chant] = await Promise.all([
+      perfIds.length ? soft(sb.rpc('crowd_setlist', { p_perf: perfIds })) : [],
+      perfIds.length && authSession?.user ? soft(sb.rpc('my_setlist_checks', { p_perf: perfIds })) : [],
+      songIds.length ? soft(sb.rpc('crowd_chant_counts', { p_songs: songIds })) : [],
+    ]);
+    const crowd = { rows: crowdRows, mine, chant: Object.fromEntries(chant.map((c) => [c.song_id, c.votes])) };
+    return shapeEventDetail(ev, perfs, indexBy(artists), items, indexBy(songs), groupSegments(segs), Date.now(), countMap, crowd);
   },
 
   subscribe(eventId, fn) {
@@ -409,6 +418,14 @@ export const supabaseBackend = {
       user_id: user.id, performance_id: performanceId, kind, song_id: songId,
       title: String(title).trim().slice(0, 120) || null, at_sec: atSec,
     }));
+  },
+  // 관객 체크: items = [{ songId, title, played: true|false|null, chant, encore }]
+  async submitChecks(performanceId, items) {
+    requireUser();
+    const payload = items.map((x) => ({ song_id: x.songId || null, title: x.title || '', played: x.played ?? null, chant: !!x.chant, encore: !!x.encore }));
+    const { data, error } = await sb.rpc('submit_setlist_checks', { p_perf: performanceId, p_items: payload });
+    if (error) throw error.code === '22023' || error.code === '42501' ? new UserError(error.message) : toUserError(error);
+    return data || { saved: 0, reporters: 0 };
   },
   async joinWaitlist(email, consent = true) {
     const e = String(email).trim().toLowerCase();

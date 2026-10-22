@@ -916,3 +916,13 @@ alter table songs add column if not exists youtube_verified_at timestamptz;
 alter table songs add column if not exists youtube_locked boolean not null default false; -- 운영자가 고른 영상 고정
 -- songs_with_youtube_upcoming_v2(): 다가오는 공연 셋리스트 곡 중 영상이 연결된 곡 (마이그레이션 참고)
 -- 예약: setreview-youtube-audit '5 * * * *' body {"fix":true,"budget":250} / youtube-ids budget 170
+
+-- ============================================================
+-- 관객이 함께 맞추는 셋리스트 (예상 → 관객이 맞추는 중 → 확정)
+--  - setlist_checks: 관객 한 명이 무대의 곡마다 남긴 체크 (불렀어요 / 안 불렀어요 / 떼창 / 앙코르)
+--  - 쓰기는 submit_setlist_checks(무대, 체크 목록) 로만: 공연 시작 2시간 전 ~ 끝나고 14일
+--  - 읽기는 숫자만: crowd_setlist(무대들) · crowd_chant_counts(곡들) · my_setlist_checks(무대들)
+--  - 끝난 공연의 예상 셋리스트는 누구나 전부 볼 수 있어요 (예상 vs 실제 비교 · 체크용)
+--    alter policy "setlist read" ... or private.perf_ended(performance_id)
+--  (실제 정의는 마이그레이션 crowd_setlist_checks 참고)
+-- ============================================================

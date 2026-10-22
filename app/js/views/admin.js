@@ -80,10 +80,20 @@ const TAB_VIEWS = {
     const sel = perfs.find((p) => p.id === query.perf) || perfs.find((p) => p.status === 'live') || null;
 
     let body = '';
+    let crowdRows = [], crowdAgreed = [];
     if (sel) {
       const playedIds = new Set(sel.actual.map((i) => i.song?.id).filter(Boolean));
       const next = sel.predicted.filter((i) => !(i.song && playedIds.has(i.song.id)));
       const myReports = pending.filter((r) => r.performanceId === sel.id && r.kind === 'now_playing');
+      // 관객 체크: 예상 순서대로, 예상에 없던 곡은 뒤에
+      const keyOf = (it) => (it.song?.id ? String(it.song.id) : 't:' + String(it.title || '').toLowerCase().replace(/[\s!-\/:-@\[-`{-~]+/g, ''));
+      const predKeys = sel.predicted.map(keyOf);
+      const crowdAll = Object.values(sel.crowd?.bySong || {});
+      crowdRows = [
+        ...predKeys.map((k) => sel.crowd?.bySong[k]).filter(Boolean).map((r) => ({ ...r, inPredicted: true })),
+        ...crowdAll.filter((r) => !predKeys.includes(r.key)).sort((a, b) => b.yes - a.yes).map((r) => ({ ...r, inPredicted: false })),
+      ];
+      crowdAgreed = crowdRows.filter((r) => r.yes > r.no && r.yes > 0);
       const grouped = [...myReports.reduce((m, r) => {
         const key = r.songId || r.title.toLowerCase();
         const g = m.get(key) || { ...r, ids: [], count: 0 };
@@ -120,6 +130,20 @@ const TAB_VIEWS = {
                 <button type="button" class="btn btn-primary btn-sm" data-action="approve-now" data-ids="${g.ids.join(',')}" data-song="${g.songId || ''}" data-title="${g.title}">셋리스트에 추가</button>
                 <button type="button" class="btn btn-ghost btn-sm" data-action="reject-many" data-ids="${g.ids.join(',')}">무시</button>
               </div>
+            </li>`)}
+          </ul>
+        </div>` : ''}
+
+        ${crowdRows.length ? html`<div class="card stack">
+          <div class="row between">
+            <h2>관객 체크 <span class="pill pill-accent">${sel.crowd.reporters}명</span></h2>
+            ${!sel.actual.length && crowdAgreed.length ? html`<button type="button" class="btn btn-primary btn-sm" data-action="crowd-fill">관객 체크로 실제 셋리스트 채우기 (${crowdAgreed.length}곡)</button>` : ''}
+          </div>
+          <p class="small muted">관객이 곡마다 '불렀어요 · 안 불렀어요 · 떼창'을 눌러 준 결과예요. 채우기를 누르면 '불렀어요'가 더 많은 곡을 예상 순서대로 넣고, 예상에 없던 곡은 뒤에 붙여요. 넣은 뒤 순서는 직접 고쳐 주세요.</p>
+          <ul class="list-plain edit-list">
+            ${crowdRows.map((r) => html`<li class="edit-item" style="grid-template-columns:minmax(0,1fr) auto">
+              <div><strong>${r.title}</strong>${r.inPredicted ? '' : html` <span class="badge badge-surprise">예상에 없음</span>`}</div>
+              <div class="small mono"><span class="accent">✓ ${r.yes}</span> · ✗ ${r.no} · 🔥 ${r.chant}${r.encore ? ` · EN ${r.encore}` : ''}</div>
             </li>`)}
           </ul>
         </div>` : ''}
@@ -188,6 +212,13 @@ const TAB_VIEWS = {
           await api.adminAddActual(sel.id, { songId: el.dataset.song || null, title: el.dataset.title, isEncore: encore });
           await Promise.all(el.dataset.ids.split(',').map((id) => api.adminResolveReport(id, 'approved')));
           toast('제보를 셋리스트에 반영했어요.', 'ok');
+          rerender();
+        },
+        async 'crowd-fill'() {
+          for (const r of crowdAgreed) {
+            await api.adminAddActual(sel.id, { songId: r.songId || null, title: r.title, isEncore: r.encore * 2 > r.yes });
+          }
+          toast(`관객 체크로 ${crowdAgreed.length}곡을 넣었어요. 순서를 확인해 주세요.`, 'ok');
           rerender();
         },
         async 'reject-many'(el) {

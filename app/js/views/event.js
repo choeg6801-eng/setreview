@@ -8,9 +8,12 @@ import { won } from '../util.js';
 import { navigate } from '../router.js';
 import { spotifyEnabled, getToken, connectSpotify, takePending, savePlaylist } from '../spotify.js';
 import { footer } from './footer.js';
+import { checkKey } from '../api/shape.js';
 
 const openSongs = new Set();
 const openPlay = new Set(); // '예습 플리 듣기' 패널을 연 무대
+const openCheck = new Set(); // '셋리스트 맞추기'를 연 무대
+const CHECK_DAYS = 14; // 공연 뒤 며칠까지 관객 체크를 받는지 (서버와 같게)
 const savedLinks = new Map(); // performanceId:which → Spotify 주소
 
 const norm = (s) => String(s || '').trim().toLowerCase();
@@ -73,12 +76,152 @@ export default async function eventView(ctx) {
     </div>`;
   }
 
+  // 셋리스트가 지금 어느 단계인지: 예상 → 관객이 맞추는 중 → 확정
+  function stageOf(p) {
+    const isLive = p.status === 'live' || (ev.status === 'live' && p.status !== 'ended');
+    const ended = p.status === 'ended' || ev.status === 'ended';
+    const confirmed = p.actual.length > 0 && !isLive;
+    const checkOpen = isLive || (ended && Date.now() <= Date.parse(ev.endsAt) + CHECK_DAYS * 86400000);
+    const stage = confirmed ? 'confirmed' : isLive ? 'live' : p.crowd.reporters ? 'crowd' : ended ? 'unconfirmed' : 'predicted';
+    return { isLive, ended, confirmed, checkOpen, stage };
+  }
+
+  function stageBar(p, st) {
+    const steps = [['predicted', '예상'], ['crowd', '관객이 맞추는 중'], ['confirmed', '확정']];
+    const cur = st.stage === 'confirmed' ? 2 : st.stage === 'predicted' ? 0 : 1;
+    const n = p.crowd.reporters;
+    let text;
+    if (st.stage === 'confirmed') {
+      const playedKeys = new Set(p.actual.map((it) => checkKey(it.song?.id, it.title)));
+      const hit = p.predicted.filter((it) => playedKeys.has(checkKey(it.song?.id, it.title))).length;
+      const mine = Object.values(p.crowd.mine).filter((m) => m.played != null && p.predicted.some((it) => checkKey(it.song?.id, it.title) === m.key));
+      const right = mine.filter((m) => m.played === playedKeys.has(m.key)).length;
+      text = html`실제 공연에서 부른 곡으로 <strong>확정된 셋리스트</strong>예요.${p.predicted.length ? html` 예상 셋리스트와 <strong class="accent">${hit}/${p.predicted.length}곡</strong> 같았어요.` : ''}${n ? ` 관객 ${n}명이 함께 맞췄어요.` : ''}${mine.length ? html` <span class="memory-score">내 기억력 ${right}/${mine.length}</span>` : ''}`;
+    } else if (st.stage === 'live') {
+      text = html`지금 공연 중이에요. ${p.actual.length ? '운영자와 관객 제보로' : '관객 제보로'} 실제 셋리스트를 실시간으로 맞추고 있어요.${n ? ` 지금 ${n}명 참여 중.` : ''}`;
+    } else if (st.stage === 'crowd') {
+      text = html`관객 <strong>${n}명</strong>이 실제 셋리스트를 맞추고 있어요. 곡 옆 숫자는 '불렀어요'라고 한 관객 수예요. 운영자가 확인하면 <strong>확정</strong>으로 바뀌어요.`;
+    } else if (st.stage === 'unconfirmed') {
+      text = html`공연이 끝났지만 아직 실제 셋리스트가 확인되지 않았어요. 아래는 공연 전 <strong>예상</strong>이에요. 다녀오셨다면 같이 맞춰 주세요.`;
+    } else {
+      text = html`같은 투어 최근 공연을 바탕으로 만든 <strong>예상</strong>이에요. 실제 공연과 다를 수 있어요. 공연 당일부터는 관객들과 실제 셋리스트를 함께 맞춰요.`;
+    }
+    return html`<div class="stage-bar stage-${st.stage}">
+      <ol class="stage-steps" aria-label="셋리스트 단계">
+        ${steps.map(([, label], i) => html`<li class="${i < cur ? 'done' : i === cur ? 'current' : ''}" ${i === cur ? html`aria-current="step"` : ''}><span class="step-dot" aria-hidden="true">${i < cur ? icon('check', 12) : i + 1}</span>${label}</li>`)}
+      </ol>
+      <p class="small stage-text">${text}</p>
+    </div>`;
+  }
+
+  // 관객 체크 숫자 (확정 전, 예상 곡 옆에 보여 줘요)
+  const crowdFor = (p, it) => p.crowd.bySong[checkKey(it.song?.id, it.title)] || null;
+  // 예상에 없던 곡 중 관객이 '불렀어요' 한 곡
+  function crowdExtras(p) {
+    const known = new Set(p.predicted.map((it) => checkKey(it.song?.id, it.title)));
+    return Object.values(p.crowd.bySong).filter((r) => !known.has(r.key) && r.yes > 0).sort((a, b) => b.yes - a.yes);
+  }
+  // 관객 제보로 본 '지금 부르는 곡': 15분 안에 가장 최근 '불렀어요'
+  function crowdNow(p) {
+    const recent = Object.values(p.crowd.bySong).filter((r) => r.yes > 0 && r.lastAt && Date.now() - Date.parse(r.lastAt) < 15 * 60000);
+    return recent.sort((a, b) => b.lastAt.localeCompare(a.lastAt))[0] || null;
+  }
+
+  // 공연 중: 한 번 눌러서 지금 부르는 곡 · 떼창 제보
+  function livePanel(p, st) {
+    const hasActual = p.actual.length > 0;
+    const adminNow = hasActual ? p.actual[p.actual.length - 1] : null;
+    const cNow = !adminNow ? crowdNow(p) : null;
+    const nowTitle = adminNow?.title || cNow?.title || '';
+    const nowSong = adminNow ? { id: adminNow.song?.id || '', title: adminNow.title } : cNow ? { id: cNow.songId || '', title: cNow.title } : null;
+    const done = new Set([...p.actual.map((it) => checkKey(it.song?.id, it.title)), ...Object.values(p.crowd.mine).filter((m) => m.played).map((m) => m.key)]);
+    const next = p.predicted.filter((it) => !done.has(checkKey(it.song?.id, it.title))).slice(0, 6);
+    const mineNow = nowSong ? p.crowd.mine[checkKey(nowSong.id, nowSong.title)] : null;
+    return html`<div class="live-panel" aria-live="polite">
+      ${nowTitle ? html`<div class="now-card">
+        ${art(adminNow?.song?.albumArtUrl, '', 84)}
+        <div class="stack" style="gap:4px;min-width:0">
+          <span class="now-label"><span class="dot" aria-hidden="true"></span>NOW PLAYING${adminNow ? ` · ${adminNow.position}번째 곡` : ''}</span>
+          <span class="now-title">${nowTitle}</span>
+          <span class="live-meta">${adminNow ? `${timeAgo(adminNow.playedAt)} 시작 · 지금까지 ${p.actual.length}곡` : `관객 ${cNow.yes}명 제보 · ${timeAgo(cNow.lastAt)}`}</span>
+        </div>
+        ${loggedIn ? html`<button type="button" class="btn ${mineNow?.chant ? 'btn-soft' : 'btn-primary'} btn-sm fire-btn" data-action="chant-tap" data-perf="${p.id}" data-song="${nowSong.id}" data-title="${nowSong.title}" aria-pressed="${mineNow?.chant ? 'true' : 'false'}">🔥 ${mineNow?.chant ? '떼창 제보함' : '떼창 터졌다!'}</button>` : ''}
+      </div>` : html`<p class="muted">공연이 시작되면 지금 부르는 곡을 눌러 알려 주세요. 관객 제보가 모이면 여기에 바로 보여요.</p>`}
+      <div class="report-box">
+        <strong class="small">현장에 계신가요? 지금 부르는 곡을 눌러 주세요</strong>
+        ${loggedIn ? html`
+          ${next.length ? html`<div class="tap-grid">${next.map((it, i) => html`<button type="button" class="tap-chip ${i === 0 ? 'is-next' : ''}" data-action="now-tap" data-perf="${p.id}" data-song="${it.song?.id || ''}" data-title="${it.title}">
+            ${i === 0 ? html`<span class="tap-hint">다음 예상</span>` : ''}<span class="tap-title">${it.title}</span></button>`)}</div>` : ''}
+          <form class="inline-form" data-form="now-report">
+            <input type="hidden" name="performanceId" value="${p.id}">
+            <label class="sr-only" for="now-title-${p.id}">목록에 없는 곡 이름</label>
+            <input id="now-title-${p.id}" name="title" class="input input-sm" placeholder="목록에 없는 곡이면 직접 입력 (깜짝 곡 · 커버)" autocomplete="off">
+            <button class="btn btn-outline btn-sm" type="submit">${icon('live', 16)} 제보</button>
+          </form>` : html`<a class="btn btn-primary btn-sm" href="#/login" data-action="go-login">로그인하고 한 번에 제보하기</a>`}
+      </div>
+    </div>`;
+  }
+
+  // 공연 뒤: 곡마다 '불렀어요 / 안 불렀어요 / 떼창'만 눌러서 같이 맞추기
+  function checkCta(p, st) {
+    const mineN = Object.keys(p.crowd.mine).length;
+    const n = p.crowd.reporters;
+    return html`<div class="check-cta">
+      <div class="stack" style="gap:2px;min-width:0">
+        <strong>${st.confirmed ? '어느 곡에서 떼창이 터졌나요?' : mineN ? `내가 체크한 ${mineN}곡 · 고칠 수 있어요` : st.isLive ? '공연 끝나고 한 번에 체크해도 돼요' : '다녀오셨나요? 셋리스트를 같이 맞춰 주세요'}</strong>
+        <span class="small muted">${st.confirmed ? '곡마다 🔥만 눌러 주세요. 모인 표는 다음 공연 예습하는 사람들의 떼창 표시가 돼요.' : "곡마다 '불렀어요 · 안 불렀어요'만 누르면 끝이에요. 1분이면 돼요."}${n ? ` · 관객 ${n}명 참여` : ''}</span>
+      </div>
+      ${loggedIn
+        ? html`<button type="button" class="btn ${openCheck.has(p.id) ? 'btn-soft' : 'btn-primary'} btn-sm" data-action="toggle-check" data-perf="${p.id}" aria-expanded="${openCheck.has(p.id) ? 'true' : 'false'}">${openCheck.has(p.id) ? html`${icon('x', 16)} 닫기` : st.confirmed ? '🔥 떼창 체크하기' : html`${icon('check', 16)} ${mineN ? '내 체크 고치기' : '셋리스트 맞추기'}`}</button>`
+        : html`<a class="btn btn-primary btn-sm" href="#/login" data-action="go-login">로그인하고 맞추기</a>`}
+    </div>`;
+  }
+
+  function checkForm(p, st) {
+    const base = st.confirmed ? p.actual : p.predicted;
+    const known = new Set(base.map((it) => checkKey(it.song?.id, it.title)));
+    const extras = Object.values(p.crowd.mine).filter((m) => !known.has(m.key) && m.played);
+    return html`<form class="check-form card" data-form="checks" aria-label="셋리스트 맞추기">
+      <input type="hidden" name="performanceId" value="${p.id}">
+      <input type="hidden" name="extrasBefore" value="${extras.map((m) => m.title).join('\n')}">
+      <p class="small muted">${st.confirmed ? '떼창이 터졌던 곡에 🔥를 눌러 주세요.' : '기억나는 곡만 눌러도 괜찮아요. 모르는 곡은 그대로 두세요.'}</p>
+      <ol class="check-list">
+        ${base.map((it, i) => {
+          const m = p.crowd.mine[checkKey(it.song?.id, it.title)];
+          const v = m?.played === true ? 'yes' : m?.played === false ? 'no' : '';
+          return html`<li class="check-row">
+            <span class="song-no mono">${it.isEncore ? 'EN' : String(i + 1).padStart(2, '0')}</span>
+            <span class="check-title">${it.title}</span>
+            <input type="hidden" name="sid" value="${it.song?.id || ''}"><input type="hidden" name="t" value="${it.title}">
+            <span class="check-opts">
+              ${st.confirmed ? '' : html`<span class="seg" role="radiogroup" aria-label="${it.title}">
+                <label class="seg-yes"><input type="radio" name="p${i}" value="yes" ${v === 'yes' ? 'checked' : ''}><span>불렀어요</span></label>
+                <label class="seg-no"><input type="radio" name="p${i}" value="no" ${v === 'no' ? 'checked' : ''}><span>안 불렀어요</span></label>
+                <label class="seg-skip"><input type="radio" name="p${i}" value="" ${v === '' ? 'checked' : ''}><span>몰라요</span></label>
+              </span>`}
+              <label class="fire-toggle"><input type="checkbox" name="c${i}" ${m?.chant ? 'checked' : ''}><span>🔥 떼창</span></label>
+            </span>
+          </li>`;
+        })}
+      </ol>
+      ${st.confirmed ? '' : html`<div class="field">
+        <label for="extras-${p.id}">예상에 없던 곡도 불렀나요?</label>
+        <textarea id="extras-${p.id}" name="extras" class="textarea" rows="3" placeholder="한 줄에 한 곡씩 (깜짝 곡 · 커버곡 · 앙코르)">${extras.map((m) => m.title).join('\n')}</textarea>
+      </div>`}
+      <div class="row">
+        <button class="btn btn-primary" type="submit">${icon('check', 18)} 제보 보내기</button>
+        <button class="btn btn-ghost" type="button" data-action="toggle-check" data-perf="${p.id}">닫기</button>
+      </div>
+    </form>`;
+  }
+
   function perfBlock(p) {
+    const st = stageOf(p);
+    const { isLive } = st;
     const predictedIds = new Set(p.predicted.map((i) => i.song?.id).filter(Boolean));
     const predictedTitles = new Set(p.predicted.map((i) => norm(i.title)));
     const playedIds = new Set(p.actual.map((i) => i.song?.id).filter(Boolean));
     const playedTitles = new Set(p.actual.map((i) => norm(i.title)));
-    const isLive = p.status === 'live';
     const hasActual = p.actual.length > 0;
     const now = isLive && hasActual ? p.actual[p.actual.length - 1] : null;
     const wasPlayed = (it) => (it.song ? playedIds.has(it.song.id) : playedTitles.has(norm(it.title)));
@@ -90,60 +233,40 @@ export default async function eventView(ctx) {
 
     const predictedState = (it) => {
       if (now && (it.song ? it.song.id === now.song?.id : norm(it.title) === norm(now.title))) return 'now';
-      if (isLive || p.status === 'ended') return wasPlayed(it) ? 'played' : (p.status === 'ended' ? 'skipped' : '');
+      if (hasActual && (isLive || p.status === 'ended' || st.confirmed)) return wasPlayed(it) ? 'played' : (st.confirmed ? 'skipped' : '');
       return '';
     };
-    const remaining = p.predicted.filter((it) => !wasPlayed(it));
-    const playItems = hasActual && !isLive ? p.actual : p.predicted;
+    const showCrowd = !st.confirmed && p.crowd.reporters > 0;
+    const extrasC = showCrowd ? crowdExtras(p) : [];
+    const playItems = st.confirmed ? p.actual : p.predicted;
     const savedKey = (w) => savedLinks.get(`${p.id}:${w}`);
 
     return html`<section class="perf" aria-labelledby="perf-${p.id}">
       <div class="perf-head">
         <h2 id="perf-${p.id}">${p.artist.name}</h2>
-        ${isLive ? html`<span class="pill pill-live"><span class="dot" aria-hidden="true"></span>LIVE</span>` : p.status === 'ended' ? html`<span class="pill pill-muted">공연 끝</span>` : ''}
+        ${isLive ? html`<span class="pill pill-live"><span class="dot" aria-hidden="true"></span>LIVE</span>` : st.ended ? html`<span class="pill pill-muted">공연 끝</span>` : ''}
         <span class="meta">${[p.stage, p.startsAt ? `${fmtTime(p.startsAt)}${p.endsAt ? '–' + fmtTime(p.endsAt) : ''}` : ''].filter(Boolean).join(' · ')}</span>
         <div class="perf-actions">
-          ${(p.status === 'ended' || (hasActual && !isLive)) ? html`<a class="btn btn-soft btn-sm" href="#/recap/${encodeURIComponent(ev.slug)}/${encodeURIComponent(p.id)}">${icon('share', 16)} 복습 카드 만들기</a>` : ''}
+          ${st.confirmed ? html`<a class="btn btn-soft btn-sm" href="#/recap/${encodeURIComponent(ev.slug)}/${encodeURIComponent(p.id)}">${icon('share', 16)} 복습 카드 만들기</a>` : ''}
           ${playItems.length ? html`<button type="button" class="btn ${openPlay.has(p.id) ? 'btn-soft' : 'btn-primary'} btn-sm" data-action="toggle-play" data-perf="${p.id}" aria-expanded="${openPlay.has(p.id) ? 'true' : 'false'}">
-            ${icon(prem ? 'music' : 'lock', 16)} ${hasActual && !isLive ? '셋리스트' : '예습 플리'} 한 번에 듣기
+            ${icon(prem ? 'music' : 'lock', 16)} ${st.confirmed ? '실제 셋리스트' : '예습 플리'} 한 번에 듣기
           </button>` : ''}
         </div>
       </div>
-      ${openPlay.has(p.id) ? playPanel(p, playItems, hasActual && !isLive ? 'actual' : 'predicted') : ''}
+      ${(p.predicted.length || hasActual) ? stageBar(p, st) : ''}
+      ${openPlay.has(p.id) ? playPanel(p, playItems, st.confirmed ? 'actual' : 'predicted') : ''}
 
-      ${savedKey(hasActual && !isLive ? 'actual' : 'predicted') ? html`<div class="notice" style="margin-bottom:14px">
-        Spotify 플레이리스트를 만들었어요. <a href="${savedKey(hasActual && !isLive ? 'actual' : 'predicted')}" target="_blank" rel="noopener">Spotify에서 열기 ${icon('external', 13)}</a>
+      ${savedKey(st.confirmed ? 'actual' : 'predicted') ? html`<div class="notice" style="margin-bottom:14px">
+        Spotify 플레이리스트를 만들었어요. <a href="${savedKey(st.confirmed ? 'actual' : 'predicted')}" target="_blank" rel="noopener">Spotify에서 열기 ${icon('external', 13)}</a>
       </div>` : ''}
 
-      ${isLive ? html`<div class="live-panel" aria-live="polite">
-        ${now ? html`<div class="now-card">
-          ${art(now.song?.albumArtUrl, '', 84)}
-          <div class="stack" style="gap:4px;min-width:0">
-            <span class="now-label"><span class="dot" aria-hidden="true"></span>NOW PLAYING · ${now.position}번째 곡</span>
-            <span class="now-title">${now.title}</span>
-            <span class="live-meta">${timeAgo(now.playedAt)} 시작 · 지금까지 ${p.actual.length}곡</span>
-          </div>
-        </div>` : html`<p class="muted">곧 공연이 시작돼요. 첫 곡이 확인되면 바로 알려드릴게요.</p>`}
-        ${remaining.length ? html`<p class="small muted">다음 예상 곡: <strong class="accent">${remaining[0].title}</strong>${remaining[1] ? html` → ${remaining[1].title}` : ''}</p>` : ''}
-        <div class="report-box">
-          <strong class="small">현장에 계신가요? 지금 부르는 곡을 알려 주세요</strong>
-          ${loggedIn ? html`<form class="inline-form" data-form="now-report">
-            <input type="hidden" name="performanceId" value="${p.id}">
-            <label class="sr-only" for="now-${p.id}">지금 부르는 곡</label>
-            <select id="now-${p.id}" name="songId" class="select input-sm" style="flex:1 1 200px;width:auto">
-              ${remaining.filter((it) => it.song).map((it) => html`<option value="${it.song.id}">${it.title}</option>`)}
-              <option value="">목록에 없는 곡 (직접 입력)</option>
-            </select>
-            <label class="sr-only" for="now-title-${p.id}">곡 이름 직접 입력</label>
-            <input id="now-title-${p.id}" name="title" class="input input-sm" placeholder="직접 입력 (목록에 없을 때)" autocomplete="off">
-            <button class="btn btn-primary btn-sm" type="submit">${icon('live', 16)} 제보하기</button>
-          </form>` : html`<a class="btn btn-outline btn-sm" href="#/login" data-action="go-login">로그인하고 제보하기</a>`}
-        </div>
-      </div>` : ''}
+      ${isLive ? livePanel(p, st) : ''}
+      ${st.checkOpen && (p.predicted.length || hasActual) ? checkCta(p, st) : ''}
+      ${st.checkOpen && openCheck.has(p.id) && loggedIn ? checkForm(p, st) : ''}
 
-      ${hasActual ? html`<div class="setlist-card" style="margin-bottom:16px">
+      ${hasActual ? html`<div class="setlist-card is-confirmed" style="margin-bottom:16px">
         <div class="setlist-head">
-          <h3>${isLive ? '지금까지 부른 곡' : '실제 셋리스트'} <span class="muted small">· ${p.actual.length}곡</span></h3>
+          <h3>${isLive ? html`<span class="tag tag-live">실시간</span>` : html`<span class="tag tag-confirmed">${icon('check', 13)} 확정</span>`} ${isLive ? '지금까지 부른 곡' : '실제 셋리스트'} <span class="muted small">· ${p.actual.length}곡</span></h3>
           <span class="legend"><span><span class="badge badge-surprise">깜짝 곡</span> 예상에 없던 곡</span></span>
         </div>
         <ol class="songs">
@@ -155,9 +278,9 @@ export default async function eventView(ctx) {
         </ol>
       </div>` : ''}
 
-      ${p.predicted.length ? html`<div class="setlist-card">
+      ${p.predicted.length ? html`<div class="setlist-card is-predicted ${st.confirmed ? 'is-past' : ''}">
         <div class="setlist-head">
-          <h3>${hasActual ? '예상했던 셋리스트' : '예상 셋리스트'} <span class="muted small">· ${p.predictedTotal}곡</span></h3>
+          <h3><span class="tag tag-predicted">예상</span> ${hasActual ? '공연 전 예상했던 셋리스트' : '예상 셋리스트'} <span class="muted small">· ${p.predictedTotal}곡</span></h3>
           ${prem ? html`<span class="legend">
             <span><span class="seg-dot highlight" aria-hidden="true"></span>하이라이트</span>
             <span><span class="seg-dot chant" aria-hidden="true"></span>떼창 구간</span>
@@ -165,8 +288,12 @@ export default async function eventView(ctx) {
         </div>
         ${p.predicted.find((it) => it.note) ? html`<p class="setlist-basis small muted">${icon('info', 14)} 예상 근거 · ${p.predicted.find((it) => it.note).note}</p>` : ''}
         <ol class="songs">
-          ${p.predicted.map((it, i) => songRow(it, rowOpts(it, i + 1, { state: predictedState(it) })))}
+          ${p.predicted.map((it, i) => songRow(it, rowOpts(it, i + 1, { state: predictedState(it), crowd: showCrowd ? crowdFor(p, it) : null })))}
         </ol>
+        ${extrasC.length ? html`<div class="crowd-extras">
+          <strong class="small">예상에 없던 곡 제보</strong>
+          <ul class="list-plain">${extrasC.map((r) => html`<li><span class="badge badge-surprise">깜짝 곡?</span> ${r.title} <span class="muted small">· 관객 ${r.yes}명</span></li>`)}</ul>
+        </div>` : ''}
         ${p.predictedTotal > p.predicted.length ? html`<div class="locked-tail">
           <ol class="songs ghost" aria-hidden="true">
             ${Array.from({ length: Math.min(3, p.predictedTotal - p.predicted.length) }, (_, i) => html`<li class="song"><div class="song-main"><span class="song-no mono">${String(p.predicted.length + i + 1).padStart(2, '0')}</span><span class="ghost-bar"></span></div></li>`)}
@@ -292,6 +419,32 @@ export default async function eventView(ctx) {
         toast('공연 주소를 복사했어요.', 'ok');
       },
       'go-login'() { requireLogin('로그인하고 제보해 주세요.'); },
+      'toggle-check'(el) {
+        if (!loggedIn) return requireLogin('로그인하고 셋리스트를 같이 맞춰 주세요.');
+        const id = el.dataset.perf;
+        openCheck.has(id) ? openCheck.delete(id) : openCheck.add(id);
+        ctx.rerender();
+      },
+      // 공연 중 한 번 누르기: 운영자에게 '지금 이 곡' 제보 + 관객 셋리스트에 '불렀어요'
+      async 'now-tap'(el) {
+        if (!loggedIn) return requireLogin();
+        const perf = el.dataset.perf, songId = el.dataset.song || null, title = el.dataset.title;
+        el.disabled = true;
+        await api.submitReport({ performanceId: perf, kind: 'now_playing', songId, title: songId ? '' : title });
+        const r = await api.submitChecks(perf, [{ songId, title, played: true }]);
+        toast(`‘${title}’ 제보 고마워요!${r.reporters > 1 ? ` 지금 관객 ${r.reporters}명이 같이 맞추고 있어요.` : ''}`, 'ok');
+        ctx.rerender();
+      },
+      async 'chant-tap'(el) {
+        if (!loggedIn) return requireLogin();
+        const p = ev.performances.find((x) => x.id === el.dataset.perf);
+        const songId = el.dataset.song || null, title = el.dataset.title;
+        const m = p?.crowd.mine[checkKey(songId, title)];
+        const on = !m?.chant;
+        await api.submitChecks(el.dataset.perf, [{ songId, title, played: true, chant: on, encore: !!m?.encore }]);
+        toast(on ? '🔥 떼창 제보 완료! 다음 공연 예습하는 사람들에게 보여 줄게요.' : '떼창 제보를 취소했어요.', on ? 'ok' : undefined);
+        ctx.rerender();
+      },
       async 'spotify-save'(el) {
         const p = ev.performances.find((x) => x.id === el.dataset.perf);
         const which = el.dataset.which;
@@ -318,11 +471,35 @@ export default async function eventView(ctx) {
       async 'now-report'(fd, form) {
         if (!loggedIn) return requireLogin();
         const title = String(fd.get('title') || '').trim();
-        const songId = title ? null : fd.get('songId') || null;
-        if (!songId && !title) throw new UserError('곡을 고르거나 곡 이름을 적어 주세요.');
-        await api.submitReport({ performanceId: fd.get('performanceId'), kind: 'now_playing', songId, title });
+        if (!title) throw new UserError('부르는 곡 이름을 적어 주세요.');
+        const perf = fd.get('performanceId');
+        await api.submitReport({ performanceId: perf, kind: 'now_playing', title });
+        const r = await api.submitChecks(perf, [{ title, played: true }]);
         form.reset();
-        toast('제보 고마워요! 운영자가 확인하면 바로 반영돼요.', 'ok');
+        toast(`‘${title}’ 제보 고마워요!${r.reporters > 1 ? ` 지금 관객 ${r.reporters}명이 같이 맞추고 있어요.` : ''}`, 'ok');
+        ctx.rerender();
+      },
+      // 공연 뒤 셋리스트 맞추기: 곡마다 불렀어요 / 안 불렀어요 / 떼창 + 예상에 없던 곡
+      async checks(fd) {
+        if (!loggedIn) return requireLogin();
+        const perf = fd.get('performanceId');
+        const sids = fd.getAll('sid'), titles = fd.getAll('t');
+        const items = titles.map((title, i) => {
+          const v = fd.get(`p${i}`);
+          return { songId: sids[i] || null, title, played: v === 'yes' ? true : v === 'no' ? false : null, chant: fd.get(`c${i}`) === 'on' };
+        });
+        const lines = (s) => [...new Set(String(s || '').split('\n').map((x) => x.trim()).filter(Boolean))].slice(0, 30);
+        const extras = lines(fd.get('extras'));
+        const before = lines(fd.get('extrasBefore'));
+        const keyOf = (t) => checkKey(null, t);
+        for (const t of extras) items.push({ title: t, played: true });
+        for (const t of before) if (!extras.some((x) => keyOf(x) === keyOf(t))) items.push({ title: t, played: null }); // 지운 곡은 내 체크에서 빼요
+        const marked = items.filter((x) => x.played != null || x.chant).length;
+        if (!marked) throw new UserError("기억나는 곡에 '불렀어요'나 🔥를 하나 이상 눌러 주세요.");
+        const r = await api.submitChecks(perf, items);
+        openCheck.delete(perf);
+        toast(`고마워요! ${marked}곡을 맞췄어요.${r.reporters > 1 ? ` 이 공연 셋리스트를 관객 ${r.reporters}명이 함께 맞추고 있어요.` : ' 첫 번째로 맞춰 주셨어요 🙌'}`, 'ok');
+        ctx.rerender();
       },
     },
 

@@ -85,8 +85,23 @@ function shapeItem(it, songsById, segsBySong) {
   };
 }
 
-export function shapeEventDetail(ev, perfs, artistsById, items, songsById, segsBySong, now = Date.now(), counts = {}) {
+// 관객 체크(같이 맞추는 셋리스트)에서 곡을 가리키는 열쇠: 서버의 submit_setlist_checks 와 같아요
+export const checkKey = (songId, title) => (songId ? String(songId) : 't:' + String(title || '').toLowerCase().replace(/[\s!-\/:-@\[-`{-~]+/g, ''));
+
+// crowd = { rows: crowd_setlist 결과, mine: my_setlist_checks 결과, chant: { [songId]: 관객 떼창 표 수 } }
+function shapeCrowd(perfId, crowd) {
+  const rows = (crowd.rows || []).filter((r) => r.performance_id === perfId);
+  const bySong = {};
+  for (const r of rows) bySong[r.song_key] = { key: r.song_key, songId: r.song_id || null, title: r.title, yes: r.yes || 0, no: r.no || 0, chant: r.chant || 0, encore: r.encore || 0, lastAt: r.last_at || null };
+  const mine = {};
+  for (const m of (crowd.mine || []).filter((x) => x.performance_id === perfId)) mine[m.song_key] = { key: m.song_key, songId: m.song_id || null, title: m.title, played: m.played, chant: !!m.chant, encore: !!m.is_encore };
+  return { reporters: rows.reduce((n, r) => Math.max(n, r.reporters || 0), 0), bySong, mine };
+}
+
+export function shapeEventDetail(ev, perfs, artistsById, items, songsById, segsBySong, now = Date.now(), counts = {}, crowd = {}) {
   const summary = shapeEventSummary(ev, perfs, artistsById, now);
+  const chantVotes = crowd.chant || {};
+  const withCrowd = (it) => { if (it.song) it.song.crowdChant = chantVotes[it.song.id] || 0; return it; };
   const performances = [...perfs]
     .sort((a, b) => a.sort - b.sort)
     .map((p) => {
@@ -103,8 +118,9 @@ export function shapeEventDetail(ev, perfs, artistsById, items, songsById, segsB
         status: p.status,
         sort: p.sort,
         artist: { id: p.artist_id, name: artistsById[p.artist_id]?.name || '' },
-        predicted: mine.filter((it) => it.kind === 'predicted').sort(byPos).map((it) => shapeItem(it, songsById, segsBySong)),
-        actual: mine.filter((it) => it.kind === 'actual').sort(byPos).map((it) => shapeItem(it, songsById, segsBySong)),
+        predicted: mine.filter((it) => it.kind === 'predicted').sort(byPos).map((it) => withCrowd(shapeItem(it, songsById, segsBySong))),
+        actual: mine.filter((it) => it.kind === 'actual').sort(byPos).map((it) => withCrowd(shapeItem(it, songsById, segsBySong))),
+        crowd: shapeCrowd(p.id, crowd),
       };
     });
   return { ...summary, performances };

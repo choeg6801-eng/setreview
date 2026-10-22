@@ -125,6 +125,7 @@ export function buildDemoDb(now = Date.now()) {
     follows: [],
     progress: [],
     reports: [],
+    checks: [],
     waitlist: [],
     attendances: [],
   };

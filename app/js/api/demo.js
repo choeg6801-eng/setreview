@@ -1,7 +1,7 @@
 // 데모 백엔드 — 브라우저 localStorage 에 데이터를 저장해요.
 // 서버 없이 앱 전체를 체험하고 테스트할 수 있어요. 다른 탭과도 실시간으로 동기화돼요.
 import { buildDemoDb } from './seed.js';
-import { shapeEventSummary, shapeEventDetail, shapeSession, shapeSong, indexBy, groupSegments, canPremium, shapeAttendance, attendanceRow, shapeArtist, shapeNotification, shapeSubmission, submissionRow, eventFromSubmission } from './shape.js';
+import { shapeEventSummary, shapeEventDetail, shapeSession, shapeSong, indexBy, groupSegments, canPremium, shapeAttendance, attendanceRow, shapeArtist, shapeNotification, shapeSubmission, submissionRow, eventFromSubmission, checkKey } from './shape.js';
 import { norm, artistIndex, matchEvents } from '../taste.js';
 import { demoAttendances, demoTasteData } from './seed.js';
 import { UserError, uid } from '../util.js';
@@ -58,6 +58,29 @@ const premium = () => canPremium(shapeSession(me()), settings());
 
 // 지연을 살짝 줘서 실제 서버처럼 동작해요
 const tick = (v) => new Promise((r) => setTimeout(() => r(v), 60));
+
+// 서버의 crowd_setlist · my_setlist_checks · crowd_chant_counts 와 같은 모양
+function demoCrowd(perfIds, songIds) {
+  const checks = db.checks || [];
+  const rows = [];
+  for (const pid of perfIds) {
+    const mineP = checks.filter((c) => c.performance_id === pid);
+    const reporters = new Set(mineP.map((c) => c.user_id)).size;
+    const byKey = new Map();
+    for (const c of mineP) {
+      const r = byKey.get(c.song_key) || { performance_id: pid, song_id: c.song_id, title: c.title, song_key: c.song_key, yes: 0, no: 0, chant: 0, encore: 0, last_at: c.updated_at, reporters };
+      if (c.played === true) r.yes++; if (c.played === false) r.no++; if (c.chant) r.chant++; if (c.is_encore) r.encore++;
+      if (c.updated_at > r.last_at) r.last_at = c.updated_at;
+      byKey.set(c.song_key, r);
+    }
+    rows.push(...byKey.values());
+  }
+  const u = me();
+  const mine = u ? checks.filter((c) => c.user_id === u.id && perfIds.includes(c.performance_id)) : [];
+  const chant = {};
+  for (const c of checks) if (c.chant && c.song_id && songIds.includes(c.song_id)) chant[c.song_id] = (chant[c.song_id] || 0) + 1;
+  return { rows, mine, chant };
+}
 
 export const demo = {
   mode: 'demo',
@@ -125,14 +148,15 @@ export const demo = {
     const perfs = db.performances.filter((p) => p.event_id === ev.id);
     const perfIds = new Set(perfs.map((p) => p.id));
     const all = db.setlist.filter((it) => perfIds.has(it.performance_id));
-    // 서버와 같게: 무료면 예상 셋리스트 앞 5곡만
-    const items = premium() ? all : all.filter((it) => it.kind !== 'predicted' || it.position <= 5);
+    // 서버와 같게: 무료면 예상 셋리스트 앞 5곡만 (끝난 공연은 전부)
+    const ended = (pid) => { const p = perfs.find((x) => x.id === pid); return p?.status === 'ended' || Date.parse(ev.ends_at) < Date.now(); };
+    const items = premium() ? all : all.filter((it) => it.kind !== 'predicted' || it.position <= 5 || ended(it.performance_id));
     const counts = {};
     for (const it of all) if (it.kind === 'predicted') counts[it.performance_id] = (counts[it.performance_id] || 0) + 1;
     const songIds = new Set(items.map((it) => it.song_id).filter(Boolean));
     const songs = indexBy(db.songs.filter((s) => songIds.has(s.id)));
     const segs = premium() ? groupSegments(db.segments.filter((g) => songIds.has(g.song_id))) : {};
-    return tick(shapeEventDetail(ev, perfs, indexBy(db.artists), items, songs, segs, Date.now(), counts));
+    return tick(shapeEventDetail(ev, perfs, indexBy(db.artists), items, songs, segs, Date.now(), counts, demoCrowd([...perfIds], [...songIds])));
   },
 
   subscribe(_eventId, fn) {
@@ -374,6 +398,29 @@ export const demo = {
     });
     save();
     return tick();
+  },
+  async submitChecks(performanceId, items) {
+    const u = requireUser();
+    const p = db.performances.find((x) => x.id === performanceId);
+    const ev = p && db.events.find((e) => e.id === p.event_id);
+    if (!p || !ev) throw new UserError('무대를 찾을 수 없어요.');
+    const open = p.status === 'live' || (Date.now() >= Date.parse(ev.starts_at) - 2 * 3600000 && Date.now() <= Date.parse(ev.ends_at) + 14 * 86400000);
+    if (!open) throw new UserError('셋리스트 체크는 공연 당일부터 공연 뒤 2주까지 할 수 있어요.');
+    db.checks ||= [];
+    let saved = 0;
+    for (const x of items.slice(0, 80)) {
+      const song = x.songId ? db.songs.find((s) => s.id === x.songId) : null;
+      const title = song ? song.title : String(x.title || '').trim().slice(0, 120);
+      if (!title) continue;
+      const key = checkKey(song?.id, title);
+      const i = db.checks.findIndex((c) => c.user_id === u.id && c.performance_id === performanceId && c.song_key === key);
+      if (x.played == null && !x.chant && !x.encore) { if (i >= 0) db.checks.splice(i, 1); continue; }
+      const row = { user_id: u.id, performance_id: performanceId, song_id: song?.id || null, title, song_key: key, played: x.played ?? null, chant: !!x.chant, is_encore: !!x.encore, updated_at: new Date().toISOString() };
+      i >= 0 ? (db.checks[i] = row) : db.checks.push(row);
+      saved++;
+    }
+    save();
+    return tick({ saved, reporters: new Set(db.checks.filter((c) => c.performance_id === performanceId).map((c) => c.user_id)).size });
   },
   async joinWaitlist(email, consent = true) {
     const e = String(email).trim().toLowerCase();

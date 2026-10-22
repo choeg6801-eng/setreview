@@ -619,3 +619,73 @@ body.is-loading::before { content: ""; position: fixed; top: 0; left: 0; height:
 .locked-cta { position: absolute; inset: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 12px; padding: 12px 16px; text-align: center; background: linear-gradient(to bottom, transparent, var(--bg, #0d0c1d) 55%); color: var(--peach); }
 .locked-cta p { flex: 1 1 100%; color: var(--text); font-size: 14px; margin: 0; }
 .seg-note { margin-top: 8px; }
+
+/* ---------- 예상 · 관객이 맞추는 중 · 확정 ---------- */
+.stage-bar { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; margin-bottom: 16px; border-radius: var(--radius-sm); border: 1px dashed var(--line-2); background: rgba(18, 22, 60, 0.6); }
+.stage-bar.stage-confirmed { border-style: solid; border-color: rgba(123, 224, 168, 0.4); background: rgba(123, 224, 168, 0.06); }
+.stage-bar.stage-live, .stage-bar.stage-crowd { border-style: solid; border-color: rgba(255, 138, 61, 0.45); background: rgba(255, 106, 31, 0.07); }
+.stage-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 4px; align-items: center; font-size: 13px; font-weight: 700; color: var(--faint); }
+.stage-steps li { display: inline-flex; align-items: center; gap: 6px; }
+.stage-steps li + li::before { content: ''; width: 18px; height: 1px; background: var(--line-2); margin-right: 4px; }
+.step-dot { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--line-2); font-size: 11px; font-family: var(--mono); }
+.stage-steps li.done { color: var(--muted); }
+.stage-steps li.done .step-dot { background: var(--card-3); border-color: transparent; color: var(--text); }
+.stage-steps li.current { color: var(--text); }
+.stage-predicted .stage-steps li.current .step-dot { border-style: dashed; border-color: var(--peach); color: var(--peach); }
+.stage-live .stage-steps li.current .step-dot, .stage-crowd .stage-steps li.current .step-dot, .stage-unconfirmed .stage-steps li.current .step-dot { background: var(--accent); border-color: var(--accent); color: var(--ink); }
+.stage-confirmed .stage-steps li.current .step-dot { background: var(--ok); border-color: var(--ok); color: var(--ink); }
+.stage-text { color: var(--muted); }
+.stage-text strong { color: var(--text); }
+.memory-score { display: inline-block; margin-left: 4px; padding: 1px 8px; border-radius: 999px; background: var(--card-3); color: var(--text); font-weight: 700; font-size: 12px; }
+
+.tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 800; letter-spacing: 0; vertical-align: 2px; }
+.tag-predicted { border: 1px dashed var(--peach); color: var(--peach); }
+.tag-confirmed { background: var(--ok); color: var(--ink); }
+.tag-live { background: var(--accent); color: var(--ink); }
+.setlist-card.is-predicted { border-style: dashed; border-color: var(--line-2); }
+.setlist-card.is-predicted .song-no { color: var(--faint); }
+.setlist-card.is-predicted.is-past { opacity: 0.92; }
+.setlist-card.is-confirmed { border-color: rgba(123, 224, 168, 0.35); }
+
+.badge-crowd-yes { background: rgba(123, 224, 168, 0.14); color: var(--ok); }
+.badge-crowd-no { background: rgba(238, 237, 251, 0.08); color: var(--faint); }
+.badge-crowd-fire { background: rgba(255, 106, 31, 0.16); color: var(--peach); }
+.crowd-extras { border-top: 1px solid var(--line); padding: 12px 16px; display: flex; flex-direction: column; gap: 6px; }
+.crowd-extras li { font-size: 14px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+/* 공연 중 한 번 누르기 */
+.tap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.tap-chip { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 52px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line-2); background: var(--card-2); color: var(--text); text-align: left; cursor: pointer; font-weight: 700; }
+.tap-chip:hover, .tap-chip:focus-visible { border-color: var(--accent-2); }
+.tap-chip:active { transform: scale(0.98); }
+.tap-chip.is-next { border-color: var(--accent); background: rgba(255, 106, 31, 0.14); }
+.tap-hint { font-size: 11px; font-weight: 700; color: var(--peach); }
+.tap-title { font-size: 15px; line-height: 1.35; }
+.fire-btn { margin-left: auto; flex-shrink: 0; }
+
+/* 공연 뒤 같이 맞추기 */
+.check-cta { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 14px 16px; margin-bottom: 16px; border-radius: var(--radius-sm); background: var(--card-2); border: 1px solid var(--line-2); }
+.check-form { display: flex; flex-direction: column; gap: 14px; margin-bottom: 16px; }
+.check-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.check-row { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.check-row:last-child { border-bottom: 0; }
+.check-title { font-weight: 700; min-width: 0; }
+.check-opts { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.seg { display: inline-flex; border: 1px solid var(--line-2); border-radius: 10px; overflow: hidden; }
+.seg label, .fire-toggle { position: relative; cursor: pointer; }
+.seg input, .fire-toggle input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.seg span, .fire-toggle span { display: inline-flex; align-items: center; min-height: 36px; padding: 0 10px; font-size: 13px; font-weight: 700; color: var(--muted); }
+.seg label + label span { border-left: 1px solid var(--line-2); }
+.seg-yes input:checked + span { background: var(--ok); color: var(--ink); }
+.seg-no input:checked + span { background: var(--card-3); color: var(--text); }
+.seg-skip input:checked + span { color: var(--faint); background: rgba(238, 237, 251, 0.04); }
+.seg input:focus-visible + span, .fire-toggle input:focus-visible + span { outline: 2px solid var(--accent-2); outline-offset: -2px; }
+.fire-toggle span { border: 1px solid var(--line-2); border-radius: 10px; }
+.fire-toggle input:checked + span { background: var(--accent); border-color: var(--accent); color: var(--ink); }
+@media (max-width: 560px) {
+  .check-row { grid-template-columns: 28px minmax(0, 1fr); }
+  .check-opts { grid-column: 1 / -1; justify-content: flex-start; }
+  .tap-grid { grid-template-columns: 1fr 1fr; }
+  .now-card { flex-wrap: wrap; }
+  .fire-btn { margin-left: 0; width: 100%; justify-content: center; }
+}

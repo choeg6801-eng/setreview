@@ -121,6 +121,11 @@ export function songRow(item, o) {
   if (o.state === 'played') badges.push(html`<span class="badge badge-played">불렀어요</span>`);
   if (o.state === 'skipped') badges.push(html`<span class="badge badge-skipped">안 불렀어요</span>`);
   if (o.state === 'now') badges.push(html`<span class="badge badge-now"><span class="dot" aria-hidden="true"></span>지금</span>`);
+  // 관객이 함께 맞춘 결과 (확정 전): '불렀어요' · '안 불렀어요'라고 한 관객 수
+  if (o.crowd && o.crowd.yes > o.crowd.no) badges.push(html`<span class="badge badge-crowd-yes" title="관객 ${o.crowd.yes}명이 불렀다고 했어요">${icon('check', 12)} 관객 ${o.crowd.yes}</span>`);
+  else if (o.crowd && o.crowd.no > o.crowd.yes) badges.push(html`<span class="badge badge-crowd-no" title="관객 ${o.crowd.no}명이 안 불렀다고 했어요">안 불렀대요 ${o.crowd.no}</span>`);
+  // 지난 공연 관객이 '떼창 터졌다'고 한 수 (모든 공연 합계)
+  if (song?.crowdChant) badges.push(html`<span class="badge badge-crowd-fire" title="지난 공연 관객 ${song.crowdChant}명이 떼창이 터졌다고 했어요">🔥 ${song.crowdChant}</span>`);
   const sub = [song?.album && song.album !== song.originalArtist ? song.album : '', song?.durationSec ? mmss(song.durationSec) : '', o.time ? o.time : ''].filter(Boolean).join(' · ');
 
   return html`<li class="song ${open ? 'open' : ''} ${o.state ? 'is-' + o.state : ''}">
