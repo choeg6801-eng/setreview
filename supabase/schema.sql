@@ -926,3 +926,10 @@ alter table songs add column if not exists youtube_locked boolean not null defau
 --    alter policy "setlist read" ... or private.perf_ended(performance_id)
 --  (실제 정의는 마이그레이션 crowd_setlist_checks 참고)
 -- ============================================================
+
+-- 실제 셋리스트 자동 채우기 (예약 작업 '셋리뷰 실제 셋리스트 채우기 (매일)')
+alter table public.events add column if not exists actual_status text;      -- null | 'found' | 'partial' | 'not_found'
+alter table public.events add column if not exists actual_note text;
+alter table public.events add column if not exists actual_checked_at timestamptz;
+alter table public.events add column if not exists actual_tries int not null default 0;
+-- songs_with_youtube_upcoming_v2(): 끝난 지 30일 안 된 공연까지 영상 점검 (복습 플리)
