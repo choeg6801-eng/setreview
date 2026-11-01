@@ -64,6 +64,9 @@ export function shapeEventSummary(ev, perfs, artistsById, now = Date.now()) {
     reviewNote: ev.review_note || '',
     predictedStatus: ev.predicted_status || '',
     predictedNote: ev.predicted_note || '',
+    // 실제 셋리스트 상태: 'partial' 이면 기사·후기로 확인된 곡만 들어가 있어요 (전곡 · 순서는 확인 중)
+    actualStatus: ev.actual_status || '',
+    actualNote: ev.actual_note || '',
     genres: ev.genres || [],
     source: ev.source || 'manual',
     ticketUrl: /^https?:\/\//i.test(ev.ticket_url || '') ? ev.ticket_url : '',

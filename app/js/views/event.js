@@ -81,13 +81,15 @@ export default async function eventView(ctx) {
     const ended = p.status === 'ended' || ev.status === 'ended';
     const confirmed = p.actual.length > 0 && !isLive;
     const checkOpen = isLive || (ended && Date.now() <= Date.parse(ev.endsAt) + CHECK_DAYS * 86400000);
-    const stage = confirmed ? 'confirmed' : isLive ? 'live' : p.crowd.reporters ? 'crowd' : ended ? 'unconfirmed' : 'predicted';
-    return { isLive, ended, confirmed, checkOpen, stage };
+    // 기사·후기로 일부 곡만 확인된 실제 셋리스트 (전곡 · 순서는 계속 확인 중)
+    const partial = confirmed && ev.actualStatus === 'partial';
+    const stage = confirmed ? (partial ? 'partial' : 'confirmed') : isLive ? 'live' : p.crowd.reporters ? 'crowd' : ended ? 'unconfirmed' : 'predicted';
+    return { isLive, ended, confirmed, partial, checkOpen, stage };
   }
 
   function stageBar(p, st) {
     const steps = [['predicted', '예상'], ['crowd', '관객이 맞추는 중'], ['confirmed', '확정']];
-    const cur = st.stage === 'confirmed' ? 2 : st.stage === 'predicted' ? 0 : 1;
+    const cur = st.stage === 'confirmed' ? 2 : st.stage === 'predicted' ? 0 : 1; // 일부 확인(partial)은 아직 2단계
     const n = p.crowd.reporters;
     let text;
     if (st.stage === 'confirmed') {
@@ -96,6 +98,8 @@ export default async function eventView(ctx) {
       const mine = Object.values(p.crowd.mine).filter((m) => m.played != null && p.predicted.some((it) => checkKey(it.song?.id, it.title) === m.key));
       const right = mine.filter((m) => m.played === playedKeys.has(m.key)).length;
       text = html`실제 공연에서 부른 곡으로 <strong>확정된 셋리스트</strong>예요.${p.predicted.length ? html` 예상 셋리스트와 <strong class="accent">${hit}/${p.predicted.length}곡</strong> 같았어요.` : ''}${n ? ` 관객 ${n}명이 함께 맞췄어요.` : ''}${mine.length ? html` <span class="memory-score">내 기억력 ${right}/${mine.length}</span>` : ''}`;
+    } else if (st.stage === 'partial') {
+      text = html`공연 기사·후기로 <strong>확인된 ${p.actual.length}곡</strong>이에요. 전곡과 정확한 순서는 아직 확인 중이라, 순서는 공연 흐름에 맞춰 정리했어요. 더 확인되면 채워 넣을게요.${n ? ` 관객 ${n}명이 함께 맞추고 있어요.` : ''} 다녀오셨다면 아래에서 빠진 곡을 알려 주세요.`;
     } else if (st.stage === 'live') {
       text = html`지금 공연 중이에요. ${p.actual.length ? '운영자와 관객 제보로' : '관객 제보로'} 실제 셋리스트를 실시간으로 맞추고 있어요.${n ? ` 지금 ${n}명 참여 중.` : ''}`;
     } else if (st.stage === 'crowd') {
@@ -167,23 +171,24 @@ export default async function eventView(ctx) {
     const n = p.crowd.reporters;
     return html`<div class="check-cta">
       <div class="stack" style="gap:2px;min-width:0">
-        <strong>${st.confirmed ? '어느 곡에서 떼창이 터졌나요?' : mineN ? `내가 체크한 ${mineN}곡 · 고칠 수 있어요` : st.isLive ? '공연 끝나고 한 번에 체크해도 돼요' : '다녀오셨나요? 셋리스트를 같이 맞춰 주세요'}</strong>
-        <span class="small muted">${st.confirmed ? '곡마다 🔥만 눌러 주세요. 모인 표는 다음 공연 예습하는 사람들의 떼창 표시가 돼요.' : "곡마다 '불렀어요 · 안 불렀어요'만 누르면 끝이에요. 1분이면 돼요."}${n ? ` · 관객 ${n}명 참여` : ''}</span>
+        <strong>${(st.confirmed && !st.partial) ? '어느 곡에서 떼창이 터졌나요?' : mineN ? `내가 체크한 ${mineN}곡 · 고칠 수 있어요` : st.isLive ? '공연 끝나고 한 번에 체크해도 돼요' : '다녀오셨나요? 셋리스트를 같이 맞춰 주세요'}</strong>
+        <span class="small muted">${(st.confirmed && !st.partial) ? '곡마다 🔥만 눌러 주세요. 모인 표는 다음 공연 예습하는 사람들의 떼창 표시가 돼요.' : "곡마다 '불렀어요 · 안 불렀어요'만 누르면 끝이에요. 1분이면 돼요."}${n ? ` · 관객 ${n}명 참여` : ''}</span>
       </div>
       ${loggedIn
-        ? html`<button type="button" class="btn ${openCheck.has(p.id) ? 'btn-soft' : 'btn-primary'} btn-sm" data-action="toggle-check" data-perf="${p.id}" aria-expanded="${openCheck.has(p.id) ? 'true' : 'false'}">${openCheck.has(p.id) ? html`${icon('x', 16)} 닫기` : st.confirmed ? '🔥 떼창 체크하기' : html`${icon('check', 16)} ${mineN ? '내 체크 고치기' : '셋리스트 맞추기'}`}</button>`
+        ? html`<button type="button" class="btn ${openCheck.has(p.id) ? 'btn-soft' : 'btn-primary'} btn-sm" data-action="toggle-check" data-perf="${p.id}" aria-expanded="${openCheck.has(p.id) ? 'true' : 'false'}">${openCheck.has(p.id) ? html`${icon('x', 16)} 닫기` : (st.confirmed && !st.partial) ? '🔥 떼창 체크하기' : html`${icon('check', 16)} ${mineN ? '내 체크 고치기' : '셋리스트 맞추기'}`}</button>`
         : html`<a class="btn btn-primary btn-sm" href="#/login" data-action="go-login">로그인하고 맞추기</a>`}
     </div>`;
   }
 
   function checkForm(p, st) {
-    const base = st.confirmed ? p.actual : p.predicted;
+    const full = st.confirmed && !st.partial; // 전곡 확정이면 떼창만 받고, 일부 확인이면 예상 곡 기준으로 '불렀어요'도 받아요
+    const base = full ? p.actual : p.predicted.length ? p.predicted : p.actual;
     const known = new Set(base.map((it) => checkKey(it.song?.id, it.title)));
     const extras = Object.values(p.crowd.mine).filter((m) => !known.has(m.key) && m.played);
     return html`<form class="check-form card" data-form="checks" aria-label="셋리스트 맞추기">
       <input type="hidden" name="performanceId" value="${p.id}">
       <input type="hidden" name="extrasBefore" value="${extras.map((m) => m.title).join('\n')}">
-      <p class="small muted">${st.confirmed ? '떼창이 터졌던 곡에 🔥를 눌러 주세요.' : '기억나는 곡만 눌러도 괜찮아요. 모르는 곡은 그대로 두세요.'}</p>
+      <p class="small muted">${full ? '떼창이 터졌던 곡에 🔥를 눌러 주세요.' : '기억나는 곡만 눌러도 괜찮아요. 모르는 곡은 그대로 두세요.'}</p>
       <ol class="check-list">
         ${base.map((it, i) => {
           const m = p.crowd.mine[checkKey(it.song?.id, it.title)];
@@ -193,7 +198,7 @@ export default async function eventView(ctx) {
             <span class="check-title">${it.title}</span>
             <input type="hidden" name="sid" value="${it.song?.id || ''}"><input type="hidden" name="t" value="${it.title}">
             <span class="check-opts">
-              ${st.confirmed ? '' : html`<span class="seg" role="radiogroup" aria-label="${it.title}">
+              ${full ? '' : html`<span class="seg" role="radiogroup" aria-label="${it.title}">
                 <label class="seg-yes"><input type="radio" name="p${i}" value="yes" ${v === 'yes' ? 'checked' : ''}><span>불렀어요</span></label>
                 <label class="seg-no"><input type="radio" name="p${i}" value="no" ${v === 'no' ? 'checked' : ''}><span>안 불렀어요</span></label>
                 <label class="seg-skip"><input type="radio" name="p${i}" value="" ${v === '' ? 'checked' : ''}><span>몰라요</span></label>
@@ -203,7 +208,7 @@ export default async function eventView(ctx) {
           </li>`;
         })}
       </ol>
-      ${st.confirmed ? '' : html`<div class="field">
+      ${full ? '' : html`<div class="field">
         <label for="extras-${p.id}">예상에 없던 곡도 불렀나요?</label>
         <textarea id="extras-${p.id}" name="extras" class="textarea" rows="3" placeholder="한 줄에 한 곡씩 (깜짝 곡 · 커버곡 · 앙코르)">${extras.map((m) => m.title).join('\n')}</textarea>
       </div>`}
@@ -265,7 +270,7 @@ export default async function eventView(ctx) {
 
       ${hasActual ? html`<div class="setlist-card is-confirmed" style="margin-bottom:16px">
         <div class="setlist-head">
-          <h3>${isLive ? html`<span class="tag tag-live">실시간</span>` : html`<span class="tag tag-confirmed">${icon('check', 13)} 확정</span>`} ${isLive ? '지금까지 부른 곡' : '실제 셋리스트'} <span class="muted small">· ${p.actual.length}곡</span></h3>
+          <h3>${isLive ? html`<span class="tag tag-live">실시간</span>` : st.partial ? html`<span class="tag tag-partial">일부 확인</span>` : html`<span class="tag tag-confirmed">${icon('check', 13)} 확정</span>`} ${isLive ? '지금까지 부른 곡' : st.partial ? '확인된 곡' : '실제 셋리스트'} <span class="muted small">· ${p.actual.length}곡</span></h3>
           <span class="legend"><span><span class="badge badge-surprise">깜짝 곡</span> 예상에 없던 곡</span></span>
         </div>
         <ol class="songs">

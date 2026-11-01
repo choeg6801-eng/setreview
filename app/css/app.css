@@ -692,3 +692,6 @@ body.is-loading::before { content: ""; position: fixed; top: 0; left: 0; height:
 
 /* 복습 카드 화면: 유튜브로 복습 플리 듣기 */
 .review-play { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 16px 18px; }
+.tag-partial { background: var(--peach); color: var(--ink); }
+.stage-partial { border-style: solid; border-color: rgba(255, 178, 122, 0.45); background: rgba(255, 178, 122, 0.06); }
+.stage-partial .stage-steps li.current .step-dot { background: var(--peach); border-color: var(--peach); color: var(--ink); }

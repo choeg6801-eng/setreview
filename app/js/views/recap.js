@@ -75,7 +75,8 @@ export default async function recap(ctx) {
               : ''}
           </div>
           <div class="setlist-card">
-            <div class="setlist-head"><h3>실제 셋리스트 <span class="muted small">· ${p.actual.length}곡</span></h3></div>
+            <div class="setlist-head"><h3>${ev.actualStatus === 'partial' ? html`<span class="tag tag-partial">일부 확인</span> 확인된 곡` : '실제 셋리스트'} <span class="muted small">· ${p.actual.length}곡</span></h3></div>
+            ${ev.actualStatus === 'partial' ? html`<p class="setlist-basis small muted">${icon('info', 14)} 공연 기사·후기로 확인된 곡만 담았어요. 전곡과 정확한 순서는 확인되는 대로 채워요.</p>` : ''}
             <ol class="songs">
               ${p.actual.map((it, i) => html`<li class="song">
                 <div class="song-main" style="grid-template-columns:30px 48px minmax(0,1fr) auto">
