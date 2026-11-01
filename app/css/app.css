@@ -689,3 +689,6 @@ body.is-loading::before { content: ""; position: fixed; top: 0; left: 0; height:
   .now-card { flex-wrap: wrap; }
   .fire-btn { margin-left: 0; width: 100%; justify-content: center; }
 }
+
+/* 복습 카드 화면: 유튜브로 복습 플리 듣기 */
+.review-play { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 16px 18px; }

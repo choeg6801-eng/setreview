@@ -1,6 +1,6 @@
 // 복습: 실제 셋리스트 + 공유용 복습 카드
 import { html, toast, fmtDate, fmtTime } from '../util.js';
-import { backLink, emptyState, art, linksRow, chantBadge } from '../components.js';
+import { backLink, emptyState, art, linksRow, chantBadge, youtubePlayAll } from '../components.js';
 import { icon } from '../icons.js';
 import { premium } from '../state.js';
 import { chantScore } from '../api/shape.js';
@@ -39,6 +39,7 @@ export default async function recap(ctx) {
     [surpriseCount, '깜짝 곡'],
   ];
   const fileName = `setreview-${ev.slug}.png`;
+  const yt = youtubePlayAll(p.actual);
 
   return {
     title: `${p.artist.name} 복습`,
@@ -60,6 +61,19 @@ export default async function recap(ctx) {
         </div>
         <div class="stack">
           <div class="stat-row">${stats.map(([v, l]) => html`<div class="stat"><strong>${v}</strong><span>${l}</span></div>`)}</div>
+          <div class="card review-play">
+            <div class="stack" style="gap:2px;min-width:0">
+              <strong>${icon('music', 16)} 복습 플리 · 유튜브로 듣기</strong>
+              <span class="small muted">${yt.ids.length
+                ? `그날 부른 순서 그대로 ${yt.ids.length}곡을 이어 들어요. 유튜브 앱에서 '저장'을 누르면 내 재생목록에 남아요.${yt.missing > 0 ? ` (아직 못 찾은 ${yt.missing}곡은 빠져 있어요)` : ''}`
+                : '곡마다 공식 음원을 찾고 있어요. 보통 몇 시간 안에 준비돼요.'}</span>
+            </div>
+            ${yt.ids.length
+              ? (prem
+                ? html`<a class="btn btn-primary btn-sm" href="${yt.url}" target="_blank" rel="noopener">${icon('external', 14)} 복습 플리 재생</a>`
+                : html`<a class="btn btn-outline btn-sm" href="#/membership">${icon('lock', 14)} 멤버십으로 듣기</a>`)
+              : ''}
+          </div>
           <div class="setlist-card">
             <div class="setlist-head"><h3>실제 셋리스트 <span class="muted small">· ${p.actual.length}곡</span></h3></div>
             <ol class="songs">

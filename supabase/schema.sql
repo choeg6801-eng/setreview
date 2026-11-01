@@ -933,3 +933,9 @@ alter table public.events add column if not exists actual_note text;
 alter table public.events add column if not exists actual_checked_at timestamptz;
 alter table public.events add column if not exists actual_tries int not null default 0;
 -- songs_with_youtube_upcoming_v2(): 끝난 지 30일 안 된 공연까지 영상 점검 (복습 플리)
+
+-- 복습 플리(실제 셋리스트 유튜브 전곡 재생)
+--  - songs_needing_youtube: 실제 셋리스트 곡은 공연이 오래됐어도 영상 찾기 (다가오는 공연 곡 먼저)
+--  - songs_with_youtube_upcoming_v2: 실제 셋리스트 곡은 기간 없이 영상 점검
+--  - 트리거 setlist_items_link_actual_song → private.link_actual_song(): 실제 셋리스트에 제목만 들어오면 곡을 찾아 잇거나 새로 만들기
+--  (실제 정의는 마이그레이션 review_playlist_youtube · actual_items_autolink_song 참고)

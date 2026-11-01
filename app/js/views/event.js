@@ -1,6 +1,6 @@
 // 공연 상세: 예상 셋리스트 · 하이라이트/떼창 구간 · 실시간 싱크 · 제보
 import { html, toast, fmtDate, fmtTime, dday, parseMmss, timeAgo, UserError } from '../util.js';
-import { songRow, statusPill, progressBar, art, backLink, emptyState, KIND_LABEL, linksRow, ticketInfo } from '../components.js';
+import { songRow, statusPill, progressBar, art, backLink, emptyState, KIND_LABEL, linksRow, ticketInfo, youtubePlayAll } from '../components.js';
 import { icon } from '../icons.js';
 import { premium } from '../state.js';
 import { config } from '../config.js';
@@ -42,18 +42,17 @@ export default async function eventView(ctx) {
 
   // 예습 플리를 다른 앱으로: 유튜브 전곡 재생 · 곡 목록 복사(다른 앱으로 옮기기) · Spotify 저장
   function playPanel(p, items, which) {
-    const ids = [...new Set(items.map((it) => it.song?.youtubeId).filter(Boolean))].slice(0, 50);
-    const missing = items.length - ids.length;
-    const ytUrl = ids.length ? `https://www.youtube.com/watch_videos?video_ids=${ids.join(',')}` : '';
+    const { ids, missing, url: ytUrl } = youtubePlayAll(items);
+    const review = which === 'actual';
     return html`<div class="play-panel card">
       <div class="play-opt">
         <div class="stack" style="gap:2px">
           <strong>유튜브 · 유튜브 뮤직</strong>
           <span class="small muted">${ids.length
-            ? `${ids.length}곡을 순서대로 이어 듣는 재생목록을 바로 열어요. 유튜브 앱에서 '저장'을 누르면 내 재생목록에 남아요.${missing > 0 ? ` (아직 못 찾은 ${missing}곡은 빠져 있어요)` : ''}`
+            ? `${review ? '실제로 부른 순서 그대로 ' : ''}${ids.length}곡을 순서대로 이어 듣는 재생목록을 바로 열어요. 유튜브 앱에서 '저장'을 누르면 내 재생목록에 남아요.${missing > 0 ? ` (아직 못 찾은 ${missing}곡은 빠져 있어요)` : ''}`
             : '곡마다 공식 음원을 찾고 있어요. 준비되면 여기서 한 번에 재생할 수 있어요.'}</span>
         </div>
-        ${ids.length ? html`<a class="btn btn-primary btn-sm" href="${ytUrl}" target="_blank" rel="noopener">${icon('external', 14)} 전곡 재생</a>` : ''}
+        ${ids.length ? html`<a class="btn btn-primary btn-sm" href="${ytUrl}" target="_blank" rel="noopener">${icon('external', 14)} ${review ? '복습 플리 재생' : '전곡 재생'}</a>` : ''}
       </div>
       <div class="play-opt">
         <div class="stack" style="gap:2px">
@@ -249,7 +248,7 @@ export default async function eventView(ctx) {
         <div class="perf-actions">
           ${st.confirmed ? html`<a class="btn btn-soft btn-sm" href="#/recap/${encodeURIComponent(ev.slug)}/${encodeURIComponent(p.id)}">${icon('share', 16)} 복습 카드 만들기</a>` : ''}
           ${playItems.length ? html`<button type="button" class="btn ${openPlay.has(p.id) ? 'btn-soft' : 'btn-primary'} btn-sm" data-action="toggle-play" data-perf="${p.id}" aria-expanded="${openPlay.has(p.id) ? 'true' : 'false'}">
-            ${icon(prem ? 'music' : 'lock', 16)} ${st.confirmed ? '실제 셋리스트' : '예습 플리'} 한 번에 듣기
+            ${icon(prem ? 'music' : 'lock', 16)} ${st.confirmed ? '복습 플리' : '예습 플리'} 한 번에 듣기
           </button>` : ''}
         </div>
       </div>
@@ -366,7 +365,7 @@ export default async function eventView(ctx) {
 
     actions: {
       'toggle-play'(el) {
-        if (!prem) { toast('예습 플리 한 번에 듣기는 멤버십 기능이에요.'); return navigate('/membership'); }
+        if (!prem) { toast('예습 · 복습 플리 한 번에 듣기는 멤버십 기능이에요.'); return navigate('/membership'); }
         const id = el.dataset.perf;
         openPlay.has(id) ? openPlay.delete(id) : openPlay.add(id);
         ctx.rerender();

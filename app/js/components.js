@@ -94,6 +94,12 @@ export function segmentTimeline(song) {
   </div>`;
 }
 
+// 유튜브 · 유튜브 뮤직에서 셋리스트 전곡을 순서대로 이어 듣는 주소 (예습 플리 · 복습 플리 공통)
+export function youtubePlayAll(items) {
+  const ids = [...new Set(items.map((it) => it.song?.youtubeId).filter(Boolean))].slice(0, 50);
+  return { ids, missing: items.length - ids.length, url: ids.length ? `https://www.youtube.com/watch_videos?video_ids=${ids.join(',')}` : '' };
+}
+
 export function linksRow(song, artistName) {
   const links = musicLinks({ title: song?.title || '', artistName, spotifyId: song?.spotifyId });
   return html`<div class="links-row" aria-label="음악 앱에서 열기">
