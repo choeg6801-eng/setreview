@@ -939,3 +939,6 @@ alter table public.events add column if not exists actual_tries int not null def
 --  - songs_with_youtube_upcoming_v2: 실제 셋리스트 곡은 기간 없이 영상 점검
 --  - 트리거 setlist_items_link_actual_song → private.link_actual_song(): 실제 셋리스트에 제목만 들어오면 곡을 찾아 잇거나 새로 만들기
 --  (실제 정의는 마이그레이션 review_playlist_youtube · actual_items_autolink_song 참고)
+
+-- 2026-11-22 search_events_by_song: 곡 이름으로 다가오는 공연 찾기 (예상 셋리스트 기준, 영문 alt_title 포함)
+-- create or replace function public.search_events_by_song(p_q text) returns table (event_id uuid, song_title text, artist_name text, is_encore boolean) ... security definer; grant to anon, authenticated

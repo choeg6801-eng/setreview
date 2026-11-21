@@ -246,6 +246,7 @@ export const demo = {
   },
 
   // ---------- 취향 · 추천 · 알림 ----------
+  async searchEventsBySong() { return tick([]); },
   async listArtists() { return tick([...db.artists].sort((a, b) => a.name.localeCompare(b.name)).map(shapeArtist)); },
   async listArtistPairs() { return tick([...db.artist_pairs]); },
   async getTaste() {

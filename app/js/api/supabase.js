@@ -290,6 +290,12 @@ export const supabaseBackend = {
   async listArtists() {
     return check(await sb.from('artists').select('id, name, name_ko, aliases, genres, similar_artists').order('name')).map(shapeArtist);
   },
+  // 곡 이름으로 찾기: 예상 셋리스트에 그 곡이 있는 다가오는 공연
+  async searchEventsBySong(q) {
+    const { data, error } = await sb.rpc('search_events_by_song', { p_q: q });
+    if (error) return [];
+    return (data || []).map((r) => ({ eventId: r.event_id, songTitle: r.song_title, artistName: r.artist_name, isEncore: r.is_encore }));
+  },
   async listArtistPairs() {
     return check(await sb.from('artist_pairs').select('a, b, users').order('users', { ascending: false }).limit(2000));
   },

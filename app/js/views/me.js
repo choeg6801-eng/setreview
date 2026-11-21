@@ -35,7 +35,7 @@ export default async function me(ctx) {
   const member = isMemberActive(s);
 
   const boardRow = (r) => html`<div class="board-row">
-    <span class="board-dday ${r.e.status === 'upcoming' && r.days <= 7 ? 'soon' : ''}">${r.e.status === 'live' ? statusPill(r.e) : r.e.status === 'ended' ? html`<span class="pill pill-muted">종료</span>` : dday(r.e.startsAt)}</span>
+    <span class="board-dday ${r.e.status === 'upcoming' && r.days <= 7 ? 'soon' : ''}">${r.e.status === 'live' ? statusPill(r.e) : r.e.status === 'ended' ? html`<span class="pill pill-muted">종료</span>` : Date.parse(r.e.startsAt) <= Date.now() ? '공연 기간' : dday(r.e.startsAt)}</span>
     <div style="min-width:0">
       <div class="board-title"><a href="#/e/${encodeURIComponent(r.e.slug)}">${r.e.title}</a></div>
       <div class="board-sub">${fmtDate(r.e.startsAt)} · ${r.e.city || ''}</div>

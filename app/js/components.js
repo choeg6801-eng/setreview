@@ -9,6 +9,8 @@ export const KIND_LABEL = { festival: '페스티벌', concert: '단독 공연' }
 export function statusPill(ev) {
   if (ev.status === 'live') return html`<span class="pill pill-live"><span class="dot" aria-hidden="true"></span>LIVE</span>`;
   if (ev.status === 'ended') return html`<span class="pill pill-muted">종료</span>`;
+  // 여러 날 하는 공연·페스티벌이 이미 시작됐으면 'D+2' 대신 '공연 기간'
+  if (Date.parse(ev.startsAt) <= Date.now()) return html`<span class="pill pill-accent">공연 기간</span>`;
   const d = daysUntil(ev.startsAt);
   return html`<span class="pill ${d <= 7 ? 'pill-accent' : 'pill-soft'}">${dday(ev.startsAt)}</span>`;
 }
@@ -142,6 +144,7 @@ export function songRow(item, o) {
         <span class="song-title">${item.title}</span>
         ${song?.originalArtist ? html`<span class="song-orig"><span class="cover-tag">커버</span>원곡 <strong>${song.originalArtist}</strong></span>` : ''}
         ${sub ? html`<span class="song-sub">${sub}</span>` : ''}
+        ${item.note && item.note !== o.basisNote ? html`<span class="song-note">${item.note}</span>` : ''}
       </button>
       <span class="song-badges">${badges}</span>
       ${song && o.canCheck ? html`<button type="button" class="check-btn ${done ? 'on' : ''}" data-action="toggle-progress" data-song="${song.id}" aria-pressed="${done ? 'true' : 'false'}" aria-label="${item.title} 예습 완료${done ? ' 취소' : ''}">${icon('check', 18)}</button>` : ''}

@@ -257,6 +257,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .song-title { font-size: 16px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .song-btn:hover .song-title { color: var(--peach); }
 .song-sub { font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.song-note { display: block; margin-top: 4px; font-size: 12px; line-height: 1.45; color: var(--peach); white-space: normal; }
 .song-badges { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .check-btn { width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line-2); background: transparent; color: var(--faint); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
 .check-btn:hover { color: var(--text); border-color: var(--accent-2); }

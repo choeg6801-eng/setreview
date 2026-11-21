@@ -292,7 +292,7 @@ export default async function eventView(ctx) {
         </div>
         ${p.predicted.find((it) => it.note) ? html`<p class="setlist-basis small muted">${icon('info', 14)} 예상 근거 · ${p.predicted.find((it) => it.note).note}</p>` : ''}
         <ol class="songs">
-          ${p.predicted.map((it, i) => songRow(it, rowOpts(it, i + 1, { state: predictedState(it), crowd: showCrowd ? crowdFor(p, it) : null })))}
+          ${p.predicted.map((it, i) => songRow(it, rowOpts(it, i + 1, { state: predictedState(it), crowd: showCrowd ? crowdFor(p, it) : null, basisNote: p.predicted.find((x) => x.note)?.note })))}
         </ol>
         ${extrasC.length ? html`<div class="crowd-extras">
           <strong class="small">예상에 없던 곡 제보</strong>
@@ -330,7 +330,7 @@ export default async function eventView(ctx) {
           <div class="row">${statusPill(ev)}<span class="pill pill-glass">${KIND_LABEL[ev.kind] || ''}</span>${ev.isVisit ? html`<span class="pill pill-visit">${ev.visitNote || '내한'}</span>` : ''}</div>
           <h1>${ev.title}</h1>
           <div class="ev-facts">
-            <span>${icon('calendar', 16)} ${fmtDate(ev.startsAt)} ${fmtTime(ev.startsAt)}${ev.status === 'upcoming' ? ` · ${dday(ev.startsAt)}` : ''}</span>
+            <span>${icon('calendar', 16)} ${fmtDate(ev.startsAt)} ${fmtTime(ev.startsAt)}${ev.status === 'upcoming' && Date.parse(ev.startsAt) > Date.now() ? ` · ${dday(ev.startsAt)}` : ''}</span>
             <span>${icon('pin', 16)} ${[ev.city, ev.venue].filter(Boolean).join(' · ') || '장소 미정'}</span>
             ${(() => { const t = ticketInfo(ev); return t ? html`<span class="ticket-fact ${t.soon ? 'soon' : ''}">${icon('ticket', 16)} ${t.upcoming ? html`<strong>${t.label}</strong> · ${t.when}` : html`${t.label} · ${t.when}`}</span>` : ''; })()}
           </div>

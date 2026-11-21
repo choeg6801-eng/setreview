@@ -62,6 +62,12 @@ export default async function home(ctx) {
   };
   const kindOk = (k) => (e) => (k === 'festival' ? e.kind === 'festival' : k === 'visit' ? e.isVisit : true);
   const searched = events.filter(matches);
+  // 곡 이름으로도 찾아요: 예상 셋리스트에 그 곡이 들어 있는 다가오는 공연
+  const songHits = q && norm(q).length >= 2 && api.searchEventsBySong
+    ? await api.searchEventsBySong(q).catch(() => [])
+    : [];
+  const byId = new Map(events.map((e) => [e.id, e]));
+  const songEvents = songHits.map((h) => ({ h, e: byId.get(h.eventId) })).filter((x) => x.e).slice(0, 12);
   const filtered = searched.filter(kindOk(kind));
   const qs = (extra) => new URLSearchParams(Object.entries({ q: query.q, tab: query.tab, kind: query.kind, ...extra }).filter(([, v]) => v && v !== 'all')).toString();
   const byTab = {
@@ -102,8 +108,8 @@ export default async function home(ctx) {
           <span class="serif-kicker">${name ? `hi, ${name}` : 'tonight, every song is yours.'}</span>
           <h1>내가 갈 공연의<br><em>셋리스트</em>를 먼저 만나요</h1>
           <form class="search" role="search" data-form="search">
-            <label class="sr-only" for="q">공연·아티스트 검색</label>
-            <input id="q" name="q" class="input" type="search" placeholder="공연·아티스트·도시 검색" value="${query.q || ''}" autocomplete="off">
+            <label class="sr-only" for="q">공연·아티스트·곡 검색</label>
+            <input id="q" name="q" class="input" type="search" placeholder="공연·아티스트·곡 이름 검색" value="${query.q || ''}" autocomplete="off">
             <button class="btn btn-primary" type="submit">${icon('search', 18)}<span class="hide-sm">검색</span></button>
           </form>
         </div>
@@ -152,12 +158,20 @@ export default async function home(ctx) {
             ${KINDS.map((k) => html`<a class="chip ${kind === k.id ? 'active' : ''}" href="#/?${qs({ kind: k.id })}" ${kind === k.id ? html`aria-current="true"` : ''}>
               ${k.label}<span class="count">${searched.filter(kindOk(k.id)).length}</span></a>`)}
           </div>
+          ${songEvents.length ? html`<div class="month-block song-hits">
+              <h3 class="month-head">${icon('music', 16)} ‘${query.q}’를 부를 것 같은 공연 <span class="faint small">${songEvents.length}개</span></h3>
+              <p class="small muted" style="margin:-4px 0 12px">예상 셋리스트에 들어 있는 공연이에요. 실제 공연과 다를 수 있어요.</p>
+              <div class="grid">${songEvents.map(({ h, e }) => html`<div class="stack" style="gap:6px">
+                ${eventCard(e, { followed: state.follows.has(e.id) })}
+                <span class="small muted">${icon('music', 14)} ${h.artistName} · <strong>${h.songTitle}</strong>${h.isEncore ? ' (앙코르 예상)' : ''}</span>
+              </div>`)}</div>
+            </div>` : ''}
           ${list.length
             ? monthGroups(list).map((g) => html`<div class="month-block">
                 ${g.label ? html`<h3 class="month-head">${g.label} <span class="faint small">${g.items.length}개</span></h3>` : ''}
                 <div class="grid">${g.items.map((e) => eventCard(e, { followed: state.follows.has(e.id) }))}</div>
               </div>`)
-            : emptyState(q ? '찾는 공연이 없어요' : '아직 등록된 공연이 없어요', q ? '다른 이름이나 도시로 검색해 보세요. 새로 발표된 공연이면 제보해 주세요.' : '곧 새로운 공연이 올라올 거예요.', html`${q ? html`<a class="btn btn-outline" href="#/">전체 공연 보기</a> ` : ''}<a class="btn btn-primary" href="#/submit">공연 제보하기</a>`)}
+            : songEvents.length ? '' : emptyState(q ? '찾는 공연이 없어요' : '아직 등록된 공연이 없어요', q ? '다른 이름이나 도시로 검색해 보세요. 새로 발표된 공연이면 제보해 주세요.' : '곧 새로운 공연이 올라올 거예요.', html`${q ? html`<a class="btn btn-outline" href="#/">전체 공연 보기</a> ` : ''}<a class="btn btn-primary" href="#/submit">공연 제보하기</a>`)}
           <div class="card submit-cta">
             <span><strong>발표됐는데 아직 없는 공연이 있나요?</strong> <span class="muted small">공지 링크와 함께 알려 주시면 확인하고 바로 올려 드려요.</span></span>
             <a class="btn btn-outline btn-sm" href="#/submit">${icon('plus', 16)} 공연 제보하기</a>
