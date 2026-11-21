@@ -142,9 +142,11 @@ export function songRow(item, o) {
       ${art(song?.albumArtUrl, '', 48)}
       <button type="button" class="song-btn" data-action="toggle-song" data-id="${item.id}" aria-expanded="${open ? 'true' : 'false'}">
         <span class="song-title">${item.title}</span>
-        ${song?.originalArtist ? html`<span class="song-orig"><span class="cover-tag">커버</span>원곡 <strong>${song.originalArtist}</strong></span>` : ''}
+        ${song?.originalArtist ? (/솔로/.test(item.note || '')
+          ? html`<span class="song-orig"><span class="cover-tag">솔로</span><strong>${song.originalArtist}</strong> 솔로곡</span>`
+          : html`<span class="song-orig"><span class="cover-tag">커버</span>원곡 <strong>${song.originalArtist}</strong></span>`) : ''}
         ${sub ? html`<span class="song-sub">${sub}</span>` : ''}
-        ${item.note && item.note !== o.basisNote ? html`<span class="song-note">${item.note}</span>` : ''}
+        ${item.note && item.note !== o.basisNote && !/솔로 무대$/.test(item.note) ?html`<span class="song-note">${item.note}</span>` : ''}
       </button>
       <span class="song-badges">${badges}</span>
       ${song && o.canCheck ? html`<button type="button" class="check-btn ${done ? 'on' : ''}" data-action="toggle-progress" data-song="${song.id}" aria-pressed="${done ? 'true' : 'false'}" aria-label="${item.title} 예습 완료${done ? ' 취소' : ''}">${icon('check', 18)}</button>` : ''}
